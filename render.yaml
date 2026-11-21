@@ -33,3 +33,20 @@ services:
         sync: false
       - key: HARUSI_MALIPO
         sync: false
+      - key: WHATSAPP_BACKEND
+        value: baileys
+
+  # Worker ya WhatsApp (Baileys). Lazima iwe hewani muda wote ili kutuma foleni.
+  # "free" inalala bila ombi la HTTP kwa dakika 15: weka cron-job.org iigonge kila dakika 10
+  # (angalia README), au badilisha plan iwe "starter" ili isilale kamwe.
+  - type: web
+    name: michango-whatsapp
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: whatsapp-worker
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false

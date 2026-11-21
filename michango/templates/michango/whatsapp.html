@@ -1,0 +1,104 @@
+{% extends "michango/base.html" %}
+{% block title %}WhatsApp{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>WhatsApp</h1>
+    <p class="sub">{% if backend == "baileys" %}Baileys (namba ya kawaida ya WhatsApp){% elif backend == "cloud" %}WhatsApp Cloud API (Meta){% else %}Majaribio: hakuna ujumbe unaotumwa{% endif %}</p>
+  </div>
+</div>
+
+{% if backend != "baileys" %}
+<div class="banner">Ukurasa huu ni wa Baileys. Weka <code>WHATSAPP_BACKEND=baileys</code> kwenye Render na uwashe worker (angalia README).</div>
+{% else %}
+
+<section class="grid two">
+  <div class="panel" id="hali-panel">
+    <h2>Muunganisho</h2>
+    {% if not hali.worker_yuko_hewani %}
+      <div class="msg error">Worker ya WhatsApp haionekani{% if hali.mapigo %} tangu {{ hali.mapigo|timesince }}{% endif %}. Hakikisha huduma ya <strong>whatsapp-worker</strong> inafanya kazi.</div>
+    {% elif hali.hali == "imeunganishwa" %}
+      <div class="msg success">Imeunganishwa{% if hali.namba %} na namba {{ hali.namba }}{% endif %}.</div>
+    {% elif hali.hali == "inasubiri_qr" %}
+      {% if hali.qr|slice:":5" == "CODE:" %}
+        <p>Kwenye simu: WhatsApp → Vifaa vilivyounganishwa → Unganisha kifaa → <strong>Unganisha kwa namba ya simu</strong>, kisha andika code hii:</p>
+        <p style="font-size:34px;font-weight:700;letter-spacing:.15em;font-variant-numeric:tabular-nums">{{ hali.qr|slice:"5:" }}</p>
+      {% else %}
+        <p>Kwenye simu yenye namba ya kutuma: <strong>WhatsApp → ⋮ → Vifaa vilivyounganishwa (Linked devices) → Unganisha kifaa</strong>, kisha scan QR hii:</p>
+        <div id="qr" style="background:#fff;padding:14px;border-radius:10px;display:inline-block" data-qr="{{ hali.qr }}"></div>
+        <p class="help">QR inabadilika kila sekunde 20 hivi; ukurasa unajisasisha wenyewe.</p>
+      {% endif %}
+    {% elif hali.hali == "imeondolewa" %}
+      <div class="msg error">Kifaa kimeondolewa kwenye simu. Worker itatengeneza QR mpya; subiri kidogo.</div>
+    {% else %}
+      <div class="msg info">{{ hali.get_hali_display }}…</div>
+    {% endif %}
+    {% if hali.taarifa %}<p class="help">Taarifa: {{ hali.taarifa }}</p>{% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Foleni</h2>
+    <ul class="list">
+      <li><span>Zinasubiri kutumwa</span><strong>{{ foleni }}</strong></li>
+      <li><span>Zimetumwa leo</span><strong>{{ zilizotumwa_leo }}</strong></li>
+      <li><span>Zimeshindwa leo</span><strong>{{ zilizoshindwa_leo }}</strong></li>
+    </ul>
+    {% if hali.imesitishwa %}
+      <div class="msg warning" style="margin-top:10px">Utumaji umesitishwa na msimamizi.</div>
+    {% elif hali.imesimamishwa_mpaka and hali.imesimamishwa_mpaka > sasa %}
+      <div class="msg warning" style="margin-top:10px">Kinga imesimamisha utumaji mpaka {{ hali.imesimamishwa_mpaka|date:"d.m H:i" }}: {{ hali.sababu_ya_kusimama }}</div>
+    {% endif %}
+    {% if hali.kikomo_cha_whatsapp %}<p class="help">Kikomo kutoka WhatsApp: {{ hali.kikomo_cha_whatsapp }}</p>{% endif %}
+    {% if user.is_staff %}
+    <form method="post" class="row" style="margin-top:12px">{% csrf_token %}
+      {% if hali.imesitishwa or hali.imesimamishwa_mpaka %}
+        <button class="btn pri" name="kitendo" value="endelea">Endelea kutuma</button>
+      {% else %}
+        <button class="btn" name="kitendo" value="sitisha">Sitisha utumaji</button>
+      {% endif %}
+      {% if foleni %}<button class="btn danger" name="kitendo" value="futa_foleni" onclick="return this.dataset.ok==='1'||(this.dataset.ok='1',this.textContent='Thibitisha kuondoa {{ foleni }}',false)">Ondoa foleni yote</button>{% endif %}
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Kinga zinazotumika</h2>
+  <ul class="help" style="margin:0;padding-left:18px;line-height:1.8">
+    <li>Ujumbe mmoja kila sekunde 40–90 (kwa bahati nasibu), na mapumziko ya dakika 4–8 baada ya kila jumbe 8.</li>
+    <li>Saa 2 asubuhi mpaka saa 2 usiku tu, na kikomo cha jumbe kwa saa na kwa siku.</li>
+    <li>Inaonyesha "anaandika…" kabla ya kutuma, na kila ujumbe una maneno tofauti kidogo.</li>
+    <li>Inakagua kwanza kama namba iko WhatsApp; haitumi kwa namba zisizo na WhatsApp.</li>
+    <li>Inasoma kikomo cha WhatsApp cha watu wapya; ikipata onyo lolote, inasimama yenyewe.</li>
+    <li>Makosa 3 mfululizo yanasimamisha utumaji kwa saa 1. Anayejibu ACHA hatumiwi tena.</li>
+  </ul>
+</section>
+
+{% if za_karibuni %}
+<section class="panel scroll">
+  <h2>Jumbe za karibuni</h2>
+  <table><thead><tr><th>Mgeni</th><th>Aina</th><th>Hali</th><th>Muda</th></tr></thead><tbody>
+  {% for j in za_karibuni %}
+    <tr><td><a href="{% url 'mgeni' j.mgeni_id %}">{{ j.mgeni.jina }}</a></td><td>{{ j.get_aina_display }}</td>
+      <td><span class="chip c-{{ j.hali }}">{{ j.get_hali_display }}</span>{% if j.kosa %} <small class="muted">{{ j.kosa|truncatechars:60 }}</small>{% endif %}</td>
+      <td class="muted">{{ j.updated|date:"d.m H:i" }}</td></tr>
+  {% endfor %}
+  </tbody></table>
+</section>
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  const el = document.getElementById('qr');
+  if (el && window.QRCode) new QRCode(el, { text: el.dataset.qr, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.L });
+  // Sasisha ukurasa hali ikibadilika (QR mpya, au imeunganishwa)
+  const mwanzo = '{{ hali.hali|escapejs }}|{{ hali.qr|slice:":40"|escapejs }}';
+  setInterval(async () => {
+    try {
+      const r = await fetch('?json=1', { headers: { 'Accept': 'application/json' } });
+      const d = await r.json();
+      if (`${d.hali}|${(d.qr || '').slice(0, 40)}` !== mwanzo) location.reload();
+    } catch (e) {}
+  }, 5000);
+</script>
+{% endif %}
+{% endblock %}

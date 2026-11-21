@@ -18,6 +18,7 @@
     <a href="{% url 'wageni' %}" class="{% if u == 'wageni' or u == 'mgeni' or u == 'mgeni_hariri' or u == 'mgeni_mpya' %}on{% endif %}">Wageni</a>
     <a href="{% url 'michango' %}" class="{% if u == 'michango' or u == 'mchango_mpya' %}on{% endif %}">Michango</a>
     <a href="{% url 'ingiza' %}" class="{% if u == 'ingiza' %}on{% endif %}">Ingiza orodha</a>
+    <a href="{% url 'whatsapp' %}" class="{% if u == 'whatsapp' %}on{% endif %}">WhatsApp</a>
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Mipangilio</a>{% endif %}
     <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button class="btn" style="padding:6px 10px">Toka</button></form>
   </nav>

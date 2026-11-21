@@ -17,7 +17,13 @@
 </div>
 
 {% if not t.whatsapp_hewani %}
-<div class="banner">WhatsApp bado haijaunganishwa. Mfumo unafanya kazi kwa majaribio: kadi zinatengenezwa, lakini hakuna ujumbe unaotumwa. Angalia README kuweka funguo za WhatsApp.</div>
+<div class="banner">WhatsApp bado haijaunganishwa. Mfumo unafanya kazi kwa majaribio: kadi zinatengenezwa, lakini hakuna ujumbe unaotumwa. Angalia README kuweka WhatsApp.</div>
+{% elif t.whatsapp_backend == "baileys" %}
+  {% if not wa.worker_yuko_hewani or wa.hali != "imeunganishwa" %}
+  <div class="banner">WhatsApp haijaunganishwa. <a href="{% url 'whatsapp' %}">Fungua ukurasa wa WhatsApp</a> kuscan QR.{% if t.jumbe_foleni %} Jumbe {{ t.jumbe_foleni }} zinasubiri.{% endif %}</div>
+  {% elif t.jumbe_foleni %}
+  <div class="msg info">Jumbe {{ t.jumbe_foleni }} ziko kwenye foleni, zinatumwa polepole. <a href="{% url 'whatsapp' %}">Angalia</a></div>
+  {% endif %}
 {% endif %}
 
 <section class="grid kpis" aria-label="Takwimu">

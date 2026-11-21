@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
-from . import whatsapp
+from . import jumbe, whatsapp
 from .kadi import tengeneza_kadi
 from .models import Harusi, Mchango, Mgeni, Ujumbe
 
@@ -38,6 +38,20 @@ def _rekodi(mgeni, aina, m: whatsapp.Matokeo) -> Ujumbe:
     return Ujumbe.objects.create(mgeni=mgeni, aina=aina, hali=hali, wa_id=m.wa_id, kosa=m.kosa)
 
 
+def _tuma(mgeni, aina, template, params, picha_url=None) -> Ujumbe:
+    """Tuma kwa njia iliyochaguliwa.
+
+    Baileys: ujumbe unaandaliwa na kuwekwa kwenye foleni; worker anautuma polepole
+    na kusasisha hali. Cloud API / majaribio: unatumwa (au kuigizwa) papo hapo.
+    """
+    if whatsapp.backend() == "baileys":
+        return Ujumbe.objects.create(
+            mgeni=mgeni, aina=aina, hali="kwenye_foleni", simu=mgeni.simu,
+            maandishi=jumbe.tunga(template, params), picha_url=picha_url or "",
+        )
+    return _rekodi(mgeni, aina, whatsapp.tuma_template(mgeni.simu, template, params, picha_url=picha_url))
+
+
 def kwa_nini_hawezi_kutumiwa(mgeni) -> str | None:
     if not mgeni.simu:
         return "Hana namba ya simu."
@@ -50,19 +64,22 @@ def tuma_kadi(mgeni: Mgeni) -> Ujumbe | None:
     """Tengeneza (kama haipo) na tuma kadi kwa WhatsApp. Hurudisha kumbukumbu ya ujumbe."""
     if kwa_nini_hawezi_kutumiwa(mgeni):
         return None
+    iliyopo = mgeni.jumbe.filter(aina="kadi", hali="kwenye_foleni").first()
+    if iliyopo:  # usiweke kadi mara mbili kwenye foleni
+        return iliyopo
     if not mgeni.kadi:
         tengeneza_kadi(mgeni)
     h = mgeni.harusi
-    m = whatsapp.tuma_template(
-        mgeni.simu,
-        "kadi",
+    u = _tuma(
+        mgeni, "kadi", "kadi",
         [mgeni.jina, h.mwenye_harusi, tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
         picha_url=url_kamili(mgeni.kadi),
     )
-    if m.ok and not m.jaribio:
+    # Baileys: worker anaweka alama baada ya kutuma kweli.
+    if u.hali == "umetumwa":
         mgeni.kadi_imetumwa = timezone.now()
         mgeni.save(update_fields=["kadi_imetumwa"])
-    return _rekodi(mgeni, "kadi", m)
+    return u
 
 
 def tuma_kikumbusho(mgeni: Mgeni) -> Ujumbe | None:
@@ -71,28 +88,24 @@ def tuma_kikumbusho(mgeni: Mgeni) -> Ujumbe | None:
     h = mgeni.harusi
     jumla = mgeni.jumla
     if jumla and mgeni.ahadi and mgeni.ahadi > jumla:
-        m = whatsapp.tuma_template(
-            mgeni.simu,
-            "kikumbusho_salio",
+        return _tuma(
+            mgeni, "kikumbusho", "kikumbusho_salio",
             [mgeni.jina, tsh(jumla), h.mwenye_harusi, tsh(mgeni.ahadi - jumla), tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
         )
-    else:
-        m = whatsapp.tuma_template(
-            mgeni.simu,
-            "kikumbusho",
-            [mgeni.jina, h.mwenye_harusi, tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
-        )
-    return _rekodi(mgeni, "kikumbusho", m)
+    return _tuma(
+        mgeni, "kikumbusho", "kikumbusho",
+        [mgeni.jina, h.mwenye_harusi, tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
+    )
 
 
 def tuma_shukrani(mchango: Mchango) -> Ujumbe | None:
     mgeni = mchango.mgeni
     if not mgeni.harusi.shukrani_zimewashwa or kwa_nini_hawezi_kutumiwa(mgeni):
         return None
-    m = whatsapp.tuma_template(
-        mgeni.simu, "shukrani", [mgeni.jina, tsh(mchango.kiasi), mgeni.harusi.mwenye_harusi, tsh(mgeni.jumla)]
+    return _tuma(
+        mgeni, "shukrani", "shukrani",
+        [mgeni.jina, tsh(mchango.kiasi), mgeni.harusi.mwenye_harusi, tsh(mgeni.jumla)],
     )
-    return _rekodi(mgeni, "shukrani", m)
 
 
 @dataclass
@@ -128,7 +141,7 @@ def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
 
     mwanzo_wa_siku = leo_local.replace(hour=0, minute=0, second=0, microsecond=0)
     pengo = timedelta(hours=max((SAA_YA_MWISHO - SAA_YA_KUANZA) / harusi.vikumbusho_kwa_siku - 1, 1))
-    hesabika = ~Q(jumbe__hali="umeshindwa")
+    hesabika = ~Q(jumbe__hali__in=Ujumbe.HALI_ZISIZOHESABIKA)
 
     wageni = (
         harusi.wageni.wanaostahili_kikumbusho()
@@ -137,16 +150,25 @@ def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
                 "jumbe",
                 filter=Q(jumbe__aina="kikumbusho", jumbe__created__gte=mwanzo_wa_siku) & hesabika,
                 distinct=True,
-            )
+            ),
+            vyote=Count("jumbe", filter=Q(jumbe__aina="kikumbusho") & hesabika, distinct=True),
+            vya_foleni=Count("jumbe", filter=Q(jumbe__hali="kwenye_foleni"), distinct=True),
         )
         .select_related("harusi")
     )
     for mgeni in wageni:
-        if mgeni.vya_leo >= harusi.vikumbusho_kwa_siku:
+        if (
+            mgeni.vya_leo >= harusi.vikumbusho_kwa_siku
+            or mgeni.vyote >= harusi.vikumbusho_jumla_max
+            or mgeni.vya_foleni  # bado ana ujumbe unaosubiri kutumwa
+        ):
             res.vimerukwa += 1
             continue
         mwisho = (
-            mgeni.jumbe.filter(aina__in=["kikumbusho", "kadi"]).exclude(hali="umeshindwa").order_by("-created").first()
+            mgeni.jumbe.filter(aina__in=["kikumbusho", "kadi"])
+            .exclude(hali__in=Ujumbe.HALI_ZISIZOHESABIKA)
+            .order_by("-created")
+            .first()
         )
         if mwisho and sasa - mwisho.created < pengo:
             res.vimerukwa += 1
@@ -191,7 +213,9 @@ def takwimu(harusi: Harusi) -> dict:
         "kwa_njia": kwa_njia,
         "jumbe_leo": Ujumbe.objects.filter(
             mgeni__harusi=harusi, created__date=timezone.localdate()
-        ).exclude(hali="umeshindwa").count(),
+        ).exclude(hali__in=Ujumbe.HALI_ZISIZOHESABIKA).count(),
         "jumbe_zilizoshindwa": Ujumbe.objects.filter(mgeni__harusi=harusi, hali="umeshindwa").count(),
+        "jumbe_foleni": Ujumbe.objects.filter(mgeni__harusi=harusi, hali="kwenye_foleni").count(),
         "whatsapp_hewani": whatsapp.iko_hewani(),
+        "whatsapp_backend": whatsapp.backend(),
     }

@@ -20,7 +20,7 @@ from .anzisha import anzisha_harusi, mahali_pa_picha
 from .forms import AnzishaForm, IngizaForm, MchangoForm, MgeniForm
 from .ingiza import ingiza_csv
 from .kadi import tengeneza_kadi
-from .models import Harusi, Mchango, Mgeni, Ujumbe, safisha_simu
+from .models import Harusi, Mchango, Mgeni, Ujumbe, WhatsAppHali, safisha_simu
 
 log = logging.getLogger("michango")
 
@@ -86,7 +86,7 @@ def dashibodi(request, harusi):
         request,
         "michango/dashibodi.html",
         {"harusi": harusi, "t": t, "michango": michango, "jumbe": jumbe, "wakubwa": wakubwa,
-         "siku_zilizobaki": siku_zilizobaki},
+         "siku_zilizobaki": siku_zilizobaki, "wa": WhatsAppHali.pata() if t["whatsapp_backend"] == "baileys" else None},
     )
 
 
@@ -126,11 +126,13 @@ def wageni_kitendo(request, harusi):
         return redirect(rudi)
 
     if kitendo == "tuma_kadi":
-        tumwa, jaribio, shindwa, rukwa = 0, 0, 0, 0
+        tumwa, jaribio, shindwa, rukwa, foleni = 0, 0, 0, 0, 0
         for m in chaguliwa.select_related("harusi"):
             u = huduma.tuma_kadi(m)
             if not u:
                 rukwa += 1
+            elif u.hali == "kwenye_foleni":
+                foleni += 1
             elif u.hali == "jaribio":
                 jaribio += 1
             elif u.hali == "umeshindwa":
@@ -139,6 +141,11 @@ def wageni_kitendo(request, harusi):
                 tumwa += 1
         if tumwa:
             messages.success(request, f"Kadi {tumwa} zimetumwa WhatsApp.")
+        if foleni:
+            messages.success(
+                request,
+                f"Kadi {foleni} zimewekwa kwenye foleni. Zitatumwa polepole (moja kila dakika 1-2) ili kulinda namba.",
+            )
         if jaribio:
             messages.info(request, f"Majaribio: kadi {jaribio} zimetengenezwa lakini hazijatumwa (WhatsApp haijaunganishwa).")
         if shindwa:
@@ -219,6 +226,8 @@ def mgeni_kitendo(request, harusi, pk):
 def _taarifa_ujumbe(request, u, m, nini):
     if u is None:
         messages.warning(request, huduma.kwa_nini_hawezi_kutumiwa(m) or "Haikutumwa.")
+    elif u.hali == "kwenye_foleni":
+        messages.success(request, f"{nini} imewekwa kwenye foleni, itatumwa kwa {m.jina} hivi punde.")
     elif u.hali == "jaribio":
         messages.info(request, f"Majaribio: {nini.lower()} haikutumwa kwa sababu WhatsApp haijaunganishwa.")
     elif u.hali == "umeshindwa":
@@ -240,7 +249,9 @@ def mchango_mpya(request, harusi):
             messages.success(request, f"Mchango wa TSh {ch.kiasi:,} kutoka kwa {ch.mgeni.jina} umehifadhiwa.")
             if form.cleaned_data.get("tuma_shukrani"):
                 u = huduma.tuma_shukrani(ch)
-                if u and u.hali == "umeshindwa":
+                if u and u.hali == "kwenye_foleni":
+                    messages.success(request, "Ujumbe wa shukrani umewekwa kwenye foleni.")
+                elif u and u.hali == "umeshindwa":
                     messages.error(request, f"Shukrani haikutumwa: {u.kosa}")
                 elif u and u.hali == "jaribio":
                     messages.info(request, "Majaribio: shukrani haikutumwa (WhatsApp haijaunganishwa).")
@@ -317,6 +328,45 @@ def tuma_vikumbusho_sasa(request, harusi):
             f"Vikumbusho vimetumwa: {res.vimetumwa}. Vimerukwa (tayari wamekumbushwa): {res.vimerukwa}. Vimeshindwa: {res.vimeshindwa}.",
         )
     return redirect("dashibodi")
+
+
+@harusi_au_setup
+def whatsapp_hali(request, harusi):
+    """Hali ya Baileys: QR ya kuunganisha, foleni, na kusitisha/kuendelea."""
+    hali = WhatsAppHali.pata()
+    if request.method == "POST" and request.user.is_staff:
+        kitendo = request.POST.get("kitendo")
+        if kitendo == "sitisha":
+            hali.imesitishwa = True
+            hali.save(update_fields=["imesitishwa", "updated"])
+            messages.success(request, "Utumaji umesitishwa. Hakuna ujumbe utakaotumwa mpaka ubofye Endelea.")
+        elif kitendo == "endelea":
+            hali.imesitishwa = False
+            hali.imesimamishwa_mpaka = None
+            hali.sababu_ya_kusimama = ""
+            hali.save(update_fields=["imesitishwa", "imesimamishwa_mpaka", "sababu_ya_kusimama", "updated"])
+            messages.success(request, "Utumaji umeendelea.")
+        elif kitendo == "futa_foleni":
+            n = Ujumbe.objects.filter(mgeni__harusi=harusi, hali="kwenye_foleni").update(
+                hali="imeghairiwa", kosa="Imeghairiwa na msimamizi"
+            )
+            messages.success(request, f"Jumbe {n} zimeondolewa kwenye foleni.")
+        return redirect("whatsapp")
+    leo = timezone.localdate()
+    jumbe = Ujumbe.objects.filter(mgeni__harusi=harusi)
+    ctx = {
+        "harusi": harusi,
+        "hali": hali,
+        "backend": whatsapp.backend(),
+        "foleni": jumbe.filter(hali="kwenye_foleni").count(),
+        "zilizotumwa_leo": jumbe.filter(umetumwa_at__date=leo).count(),
+        "zilizoshindwa_leo": jumbe.filter(hali="umeshindwa", updated__date=leo).count(),
+        "za_karibuni": jumbe.exclude(hali="jaribio").select_related("mgeni")[:15],
+        "sasa": timezone.now(),
+    }
+    if request.GET.get("json"):
+        return JsonResponse({"hali": hali.hali, "qr": hali.qr, "foleni": ctx["foleni"], "hewani": hali.worker_yuko_hewani})
+    return render(request, "michango/whatsapp.html", ctx)
 
 
 # ---------- Kwa huduma za nje ----------

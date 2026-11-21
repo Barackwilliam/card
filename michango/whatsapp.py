@@ -25,9 +25,20 @@ class Matokeo:
     kosa: str = ""
 
 
-def iko_hewani() -> bool:
+def backend() -> str:
+    """'baileys', 'cloud' au 'jaribio'."""
     cfg = settings.WHATSAPP
-    return bool(cfg["TOKEN"] and cfg["PHONE_NUMBER_ID"])
+    chaguo = (cfg.get("BACKEND") or "").lower()
+    if chaguo == "baileys":
+        return "baileys"
+    if cfg["TOKEN"] and cfg["PHONE_NUMBER_ID"]:
+        return "cloud"
+    return "jaribio"
+
+
+def iko_hewani() -> bool:
+    """Kama kuna njia halisi ya kutuma (Baileys au Cloud API)."""
+    return backend() != "jaribio"
 
 
 def tuma_template(simu: str, aina: str, params: list[str], picha_url: str | None = None) -> Matokeo:
@@ -47,7 +58,7 @@ def tuma_template(simu: str, aina: str, params: list[str], picha_url: str | None
         "template": {"name": template, "language": {"code": cfg["LANGUAGE"]}, "components": components},
     }
 
-    if not iko_hewani():
+    if backend() != "cloud":
         log.info("[JARIBIO] %s -> %s %s", template, simu, params)
         return Matokeo(ok=True, jaribio=True)
 

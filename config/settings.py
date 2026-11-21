@@ -146,6 +146,10 @@ SITE_URL = env("SITE_URL", f"https://{RENDER_HOST}" if RENDER_HOST else "http://
 # WhatsApp Cloud API (Meta). Bila WHATSAPP_TOKEN mfumo unafanya "majaribio":
 # unaandika ujumbe kwenye kumbukumbu bila kuutuma.
 WHATSAPP = {
+    # "baileys": jumbe zinaingia foleni na worker wa Node (whatsapp-worker/) anazituma.
+    # "cloud": WhatsApp Cloud API ya Meta (inahitaji WHATSAPP_TOKEN).
+    # Ikiachwa wazi: "cloud" kama kuna token, vinginevyo majaribio tu.
+    "BACKEND": env("WHATSAPP_BACKEND", ""),
     "TOKEN": env("WHATSAPP_TOKEN", ""),
     "PHONE_NUMBER_ID": env("WHATSAPP_PHONE_NUMBER_ID", ""),
     "API_VERSION": env("WHATSAPP_API_VERSION", "v21.0"),

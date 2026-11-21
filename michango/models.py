@@ -50,7 +50,14 @@ class Harusi(models.Model):
 
     vikumbusho_vimewashwa = models.BooleanField("Tuma vikumbusho", default=True)
     vikumbusho_kwa_siku = models.PositiveSmallIntegerField(
-        "Vikumbusho kwa siku", default=2, help_text="Mgeni mmoja hapokei zaidi ya idadi hii kwa siku."
+        "Vikumbusho kwa siku",
+        default=1,
+        help_text="Mgeni mmoja hapokei zaidi ya idadi hii kwa siku. Kwa Baileys, 1 ni salama zaidi kuliko 2.",
+    )
+    vikumbusho_jumla_max = models.PositiveSmallIntegerField(
+        "Vikumbusho vya juu kwa mgeni (jumla)",
+        default=4,
+        help_text="Baada ya hapo mgeni hatumiwi vikumbusho tena. Kurudia ujumbe mara nyingi huongeza ripoti za spam.",
     )
     shukrani_zimewashwa = models.BooleanField("Tuma shukrani mchango ukipokelewa", default=True)
 
@@ -184,6 +191,8 @@ class Ujumbe(models.Model):
     AINA = [("kadi", "Kadi"), ("kikumbusho", "Kikumbusho"), ("shukrani", "Shukrani")]
     HALI = [
         ("jaribio", "Jaribio (haukutumwa)"),
+        ("kwenye_foleni", "Kwenye foleni"),
+        ("imeghairiwa", "Umeghairiwa"),
         ("umetumwa", "Umetumwa"),
         ("umefika", "Umefika"),
         ("umesomwa", "Umesomwa"),
@@ -195,14 +204,73 @@ class Ujumbe(models.Model):
     hali = models.CharField(max_length=20, choices=HALI)
     wa_id = models.CharField("WhatsApp message id", max_length=120, blank=True, db_index=True)
     kosa = models.TextField(blank=True)
+    # Kwa Baileys: ujumbe unaandaliwa hapa, kisha worker anautuma polepole.
+    simu = models.CharField(max_length=20, blank=True)
+    maandishi = models.TextField(blank=True)
+    picha_url = models.URLField(max_length=500, blank=True)
+    majaribio = models.PositiveSmallIntegerField(default=0)
+    umetumwa_at = models.DateTimeField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
+    HALI_ZISIZOHESABIKA = ("umeshindwa", "imeghairiwa")
 
     class Meta:
         verbose_name = "Ujumbe"
         verbose_name_plural = "Jumbe"
         ordering = ["-created"]
-        indexes = [models.Index(fields=["mgeni", "aina", "created"])]
+        indexes = [models.Index(fields=["mgeni", "aina", "created"]), models.Index(fields=["hali", "created"])]
 
     def __str__(self):
         return f"{self.get_aina_display()} kwa {self.mgeni} ({self.get_hali_display()})"
+
+
+class WhatsAppHali(models.Model):
+    """Hali ya muunganisho wa Baileys. Inaandikwa na worker wa Node, inasomwa na Django (mstari mmoja, id=1)."""
+
+    HALI = [
+        ("haijaanza", "Worker haijaanza"),
+        ("inasubiri_qr", "Inasubiri kuscan QR"),
+        ("inaunganisha", "Inaunganisha"),
+        ("imeunganishwa", "Imeunganishwa"),
+        ("imeondolewa", "Imeondolewa kwenye simu"),
+    ]
+
+    hali = models.CharField(max_length=20, choices=HALI, default="haijaanza")
+    qr = models.TextField(blank=True)
+    namba = models.CharField(max_length=40, blank=True)
+    taarifa = models.TextField("Taarifa ya mwisho", blank=True)
+    imesitishwa = models.BooleanField("Utumaji umesitishwa na msimamizi", default=False)
+    imesimamishwa_mpaka = models.DateTimeField("Kinga: imesimama mpaka", null=True, blank=True)
+    sababu_ya_kusimama = models.TextField(blank=True)
+    kikomo_cha_whatsapp = models.TextField("Taarifa ya kikomo kutoka WhatsApp", blank=True)
+    mapigo = models.DateTimeField("Worker alionekana mara ya mwisho", null=True, blank=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "wa_hali"
+        verbose_name = "Hali ya WhatsApp"
+        verbose_name_plural = "Hali ya WhatsApp"
+
+    @classmethod
+    def pata(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def worker_yuko_hewani(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        return bool(self.mapigo and timezone.now() - self.mapigo < timedelta(minutes=3))
+
+
+class WhatsAppAuth(models.Model):
+    """Funguo za session ya Baileys (zinaandikwa na worker). Session inabaki hata server ikizimwa."""
+
+    jina = models.CharField(max_length=255, primary_key=True)
+    data = models.TextField()
+
+    class Meta:
+        db_table = "wa_auth"

@@ -15,6 +15,7 @@ urlpatterns = [
     path("michango/mpya/", views.mchango_mpya, name="mchango_mpya"),
     path("michango/<int:pk>/futa/", views.mchango_futa, name="mchango_futa"),
     path("vikumbusho/tuma/", views.tuma_vikumbusho_sasa, name="tuma_vikumbusho"),
+    path("whatsapp/", views.whatsapp_hali, name="whatsapp"),
     path("cron/vikumbusho/", views.cron_vikumbusho, name="cron_vikumbusho"),
     path("webhook/whatsapp/", views.webhook_whatsapp, name="webhook_whatsapp"),
 ]

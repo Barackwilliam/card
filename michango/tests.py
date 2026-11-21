@@ -111,6 +111,8 @@ class VikumbushoTests(Msingi):
         self.assertEqual(majina, {"Hajalipa", "Sehemu"})
 
     def test_mara_mbili_kwa_siku_tu(self):
+        self.h.vikumbusho_kwa_siku = 2
+        self.h.save()
         self.assertEqual(self.tuma(saa(9)).vimetumwa, 2)
         # kuitwa tena mara moja: pengo la saa halijafika
         self.assertEqual(self.tuma(saa(9) + timedelta(minutes=5)).vimetumwa, 0)
@@ -120,6 +122,18 @@ class VikumbushoTests(Msingi):
         # kesho inaanza upya
         self.assertEqual(self.tuma(saa(9, date(2026, 11, 26))).vimetumwa, 2)
         self.assertEqual(Ujumbe.objects.filter(aina="kikumbusho").count(), 6)
+
+    def test_chaguo_msingi_ni_mara_moja_kwa_siku(self):
+        self.assertEqual(self.tuma(saa(9)).vimetumwa, 2)
+        self.assertEqual(self.tuma(saa(18)).vimetumwa, 0)
+        self.assertEqual(self.tuma(saa(9, date(2026, 11, 26))).vimetumwa, 2)
+
+    def test_kikomo_cha_jumla(self):
+        self.h.vikumbusho_jumla_max = 2
+        self.h.save()
+        for d in (25, 26, 27):
+            self.tuma(saa(9, date(2026, 11, d)))
+        self.assertEqual(Ujumbe.objects.filter(mgeni=self.hajalipa, aina="kikumbusho").count(), 2)
 
     def test_salio_linatumia_template_ya_salio(self):
         with mock.patch.object(whatsapp, "tuma_template", return_value=whatsapp.Matokeo(ok=True, jaribio=True)) as t:
@@ -314,3 +328,72 @@ class AnzishaTests(TestCase):
         self.assertContains(r, "NoSuchBucket")
         self.assertContains(r, "Tengeneza bucket")
         self.assertFalse(Harusi.objects.exists())
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class BaileysTests(Msingi):
+    def setUp(self):
+        super().setUp()
+        self.m = self.mgeni("Neema Mollel", "0711000001", tumwa=False)
+
+    def test_kadi_inaingia_foleni_bila_kutia_alama(self):
+        u = huduma.tuma_kadi(self.m)
+        self.m.refresh_from_db()
+        self.assertEqual(u.hali, "kwenye_foleni")
+        self.assertEqual(u.simu, "255711000001")
+        self.assertIn("Neema Mollel", u.maandishi)
+        self.assertIn("30.11.2026", u.maandishi)
+        self.assertTrue(u.picha_url.startswith("http"))
+        self.assertIsNone(self.m.kadi_imetumwa)  # worker ataweka baada ya kutuma kweli
+        # kubofya tena hakuweki kadi ya pili kwenye foleni
+        self.assertEqual(huduma.tuma_kadi(self.m).pk, u.pk)
+        self.assertEqual(Ujumbe.objects.filter(mgeni=self.m).count(), 1)
+
+    def test_maandishi_yanatofautiana(self):
+        from . import jumbe
+
+        params = ["Asha", "Richard", "30.11.2026", "M-Pesa 0711 000 000"]
+        matoleo = {jumbe.tunga("kikumbusho", params) for _ in range(40)}
+        self.assertGreater(len(matoleo), 5)
+        for t in matoleo:
+            self.assertIn("Asha", t)
+            self.assertIn("ACHA", t)
+            self.assertNotIn("http", t)  # hakuna link: zinaongeza alama ya spam
+        self.assertIn("60,000", jumbe.tunga("kikumbusho_salio", ["A", "40,000", "R", "60,000", "30.11.2026", "M"]))
+
+    def test_kikumbusho_hakirudiwi_kikiwa_bado_foleni(self):
+        self.m.kadi_imetumwa = saa(9, date(2026, 11, 20))
+        self.m.save()
+        with mock.patch("django.utils.timezone.now", return_value=saa(9)):
+            self.assertEqual(huduma.tuma_vikumbusho(self.h, sasa=saa(9)).vimetumwa, 1)
+        with mock.patch("django.utils.timezone.now", return_value=saa(9, date(2026, 11, 26))):
+            r = huduma.tuma_vikumbusho(self.h, sasa=saa(9, date(2026, 11, 26)))
+        self.assertEqual(r.vimetumwa, 0)  # cha jana bado hakijatumwa (worker ilikuwa imezimwa)
+        self.assertEqual(Ujumbe.objects.filter(mgeni=self.m, aina="kikumbusho").count(), 1)
+
+    def test_ukurasa_wa_whatsapp(self):
+        from .models import WhatsAppHali
+
+        self.client.force_login(User.objects.create_user("w", password="nenosiri-zuri-123", is_staff=True))
+        h = WhatsAppHali.pata()
+        h.hali, h.qr = "inasubiri_qr", "2@abc,def"
+        h.mapigo = timezone_now()
+        h.save()
+        r = self.client.get(reverse("whatsapp"))
+        self.assertContains(r, 'data-qr="2@abc,def"')
+        self.assertEqual(self.client.get(reverse("whatsapp"), {"json": 1}).json()["hali"], "inasubiri_qr")
+        huduma.tuma_kadi(self.m)
+        self.client.post(reverse("whatsapp"), {"kitendo": "sitisha"})
+        self.assertTrue(WhatsAppHali.pata().imesitishwa)
+        self.client.post(reverse("whatsapp"), {"kitendo": "futa_foleni"})
+        self.assertEqual(Ujumbe.objects.get(mgeni=self.m).hali, "imeghairiwa")
+        self.client.post(reverse("whatsapp"), {"kitendo": "endelea"})
+        self.assertFalse(WhatsAppHali.pata().imesitishwa)
+        r = self.client.get(reverse("dashibodi"))
+        self.assertEqual(r.status_code, 200)
+
+
+def timezone_now():
+    from django.utils import timezone
+
+    return timezone.now()

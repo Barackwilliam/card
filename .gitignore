@@ -9,3 +9,6 @@ media/
 staticfiles/
 __pycache__/
 *.pyc
+
+# Worker ya WhatsApp
+whatsapp-worker/node_modules/
