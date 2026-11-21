@@ -371,6 +371,12 @@ class BaileysTests(Msingi):
         self.assertEqual(r.vimetumwa, 0)  # cha jana bado hakijatumwa (worker ilikuwa imezimwa)
         self.assertEqual(Ujumbe.objects.filter(mgeni=self.m, aina="kikumbusho").count(), 1)
 
+    def test_afya(self):
+        r = self.client.get(reverse("afya"))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["whatsapp"], "baileys")
+        self.assertFalse(r.json()["worker_hewani"])
+
     def test_ukurasa_wa_whatsapp(self):
         from .models import WhatsAppHali
 

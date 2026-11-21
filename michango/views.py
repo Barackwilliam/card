@@ -372,6 +372,19 @@ def whatsapp_hali(request, harusi):
 # ---------- Kwa huduma za nje ----------
 
 
+def afya(request):
+    """Ukurasa mwepesi kwa cron-job.org: unaifanya huduma isilale, na unaonyesha hali ya worker."""
+    data = {"ok": True, "whatsapp": whatsapp.backend()}
+    if data["whatsapp"] == "baileys":
+        try:
+            h = WhatsAppHali.objects.filter(pk=1).first()
+            data["worker_hewani"] = bool(h and h.worker_yuko_hewani)
+            data["hali"] = h.hali if h else "haijaanza"
+        except Exception:
+            data["ok"] = False
+    return JsonResponse(data)
+
+
 @csrf_exempt
 def cron_vikumbusho(request):
     """Inaitwa na scheduler (GitHub Actions, cron-job.org, n.k.) mara 2 kwa siku.

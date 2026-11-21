@@ -85,15 +85,19 @@ Pia:
 5. **Simu ibaki na internet** na usiondoe "kifaa kilichounganishwa" mara kwa mara.
 6. Ukiona ujumbe wowote wa onyo kutoka WhatsApp kwenye simu, **bofya "Sitisha utumaji"** kwenye mfumo mara moja.
 
-### Kuweka hewani (Render)
+### Kuweka hewani (Render, huduma ileile)
 
-1. Huduma ya Django: ongeza env `WHATSAPP_BACKEND=baileys`.
-2. Huduma mpya: **New → Web Service** → repo `card`, branch `main`:
-   - Root Directory: `whatsapp-worker`, Runtime: Node
-   - Build: `npm ci --omit=dev`, Start: `npm start`
-   - Env: `DATABASE_URL` (ileile ya Django)
-3. Mpango wa bure unalala bila ombi la HTTP kwa dakika 15. Kwenye https://cron-job.org tengeneza kazi inayogonga `https://<worker>.onrender.com/` **kila dakika 10**. Au tumia mpango wa kulipia ili isilale kabisa. Saa za bure za Render kwa mwezi zina kikomo, na huduma mbili zikiwa hewani muda wote zinaweza kuzimaliza kabla mwezi kuisha.
-4. Fungua **WhatsApp** kwenye mfumo, kisha kwenye simu: WhatsApp → Vifaa vilivyounganishwa → Unganisha kifaa → scan QR.
+Worker inakimbia **ndani ya huduma ileile ya Django** (hakuna huduma au akaunti nyingine). `start.sh` inawasha gunicorn na worker pamoja, inaiwasha upya worker ikisimama, na inazima zote kwa usalama.
+
+1. Huduma ya Django → **Environment**: ongeza `WHATSAPP_BACKEND` = `baileys`.
+2. **Settings → Build & Deploy**:
+   - Build Command: `./build.sh` (inasakinisha Node na vifurushi vya worker yenyewe)
+   - Start Command: `./start.sh`
+3. Deploy upya.
+4. **Isilale:** mpango wa bure unalala bila mtu kwa dakika 15, na worker inalala pamoja nayo. Kwenye https://cron-job.org tengeneza kazi inayogonga `https://<mfumo>/afya/` **kila dakika 10**. Huduma moja iliyo hewani muda wote inatosha ndani ya saa za bure za Render za mwezi.
+5. Fungua **WhatsApp** kwenye mfumo, kisha kwenye simu: WhatsApp → Vifaa vilivyounganishwa → Unganisha kifaa → scan QR.
+
+`/afya/` inaonyesha pia kama worker iko hewani (`"worker_hewani": true`).
 
 Unaweza pia kuendesha worker kwenye kompyuta yako (iwe imewashwa na ina internet):
 
