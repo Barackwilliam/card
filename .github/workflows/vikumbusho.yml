@@ -1,0 +1,26 @@
+# Inatuma vikumbusho vya mchango mara 2 kwa siku: saa 3 asubuhi na saa 12 jioni (saa za Tanzania).
+# Weka siri hizi kwenye GitHub > Settings > Secrets and variables > Actions:
+#   MICHANGO_URL  mfano https://michango.example.com
+#   CRON_SECRET   sawa na CRON_SECRET ya mfumo
+name: Vikumbusho vya mchango
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 09:00 EAT
+    - cron: "0 15 * * *"  # 18:00 EAT
+  workflow_dispatch: {}
+
+jobs:
+  tuma:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Anzisha vikumbusho
+        env:
+          MICHANGO_URL: ${{ secrets.MICHANGO_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$MICHANGO_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "MICHANGO_URL au CRON_SECRET haijawekwa; naruka."; exit 0
+          fi
+          curl --fail-with-body -sS -X POST "$MICHANGO_URL/cron/vikumbusho/" \
+            -H "Authorization: Bearer $CRON_SECRET"

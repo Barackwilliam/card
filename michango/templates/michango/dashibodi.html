@@ -1,0 +1,99 @@
+{% extends "michango/base.html" %}
+{% load humanize %}
+{% block title %}Dashibodi{% endblock %}
+{% block content %}
+<div class="head">
+  <div>
+    <h1>{{ harusi.mwenye_harusi }}</h1>
+    <p class="sub">
+      Mwisho wa kuchangia: <strong>{{ harusi.tarehe_mwisho|date:"d.m.Y" }}</strong>
+      {% if siku_zilizobaki > 0 %}· zimebaki siku {{ siku_zilizobaki }}{% elif siku_zilizobaki == 0 %}· ni leo{% else %}· muda umeisha{% endif %}
+    </p>
+  </div>
+  <div class="row">
+    <a class="btn gold" href="{% url 'mchango_mpya' %}">+ Ingiza mchango</a>
+    <a class="btn" href="{% url 'mgeni_mpya' %}">+ Mgeni</a>
+  </div>
+</div>
+
+{% if not t.whatsapp_hewani %}
+<div class="banner">WhatsApp bado haijaunganishwa. Mfumo unafanya kazi kwa majaribio: kadi zinatengenezwa, lakini hakuna ujumbe unaotumwa. Angalia README kuweka funguo za WhatsApp.</div>
+{% endif %}
+
+<section class="grid kpis" aria-label="Takwimu">
+  <div class="panel kpi hero">
+    <div class="lbl">Jumla ya michango</div>
+    <div class="val"><small>TSh</small> {{ t.jumla_michango|intcomma }}</div>
+    <div class="note">Malipo {{ t.idadi_michango }} kutoka kwa wageni {{ t.wamechangia }}</div>
+  </div>
+  <div class="panel kpi">
+    <div class="lbl">Wametumiwa kadi</div>
+    <div class="val">{{ t.wametumiwa }} <small>/ {{ t.wageni }}</small></div>
+    <div class="note"><a href="{% url 'wageni' %}?hali=hawajatumiwa">Hawajatumiwa: {{ t.hawajatumiwa }}</a></div>
+  </div>
+  <div class="panel kpi">
+    <div class="lbl">Wamechangia</div>
+    <div class="val">{{ t.wamechangia }} <small>· {{ t.asilimia_wamechangia }}%</small></div>
+    <div class="bar" aria-hidden="true"><i style="width: {{ t.asilimia_wamechangia }}%"></i></div>
+    <div class="note"><a href="{% url 'wageni' %}?hali=hawajachangia">Hawajachangia: {{ t.hawajachangia }}</a></div>
+  </div>
+  <div class="panel kpi">
+    <div class="lbl">Ahadi ambazo bado</div>
+    <div class="val"><small>TSh</small> {{ t.salio_ahadi|intcomma }}</div>
+    <div class="note">Jumla ya ahadi: TSh {{ t.ahadi|intcomma }}</div>
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <div class="head" style="margin-bottom:8px"><h2>Michango ya karibuni</h2><a href="{% url 'michango' %}">Yote</a></div>
+    {% if michango %}
+    <ul class="list">
+      {% for c in michango %}
+      <li><span><a href="{% url 'mgeni' c.mgeni_id %}">{{ c.mgeni.jina }}</a> <span class="muted">· {{ c.get_njia_display }} · {{ c.tarehe|date:"d.m" }}</span></span>
+        <strong class="num">TSh {{ c.kiasi|intcomma }}</strong></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Bado hakuna mchango. Bofya "Ingiza mchango" mtu akilipa.</p>{% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Kwa njia ya malipo</h2>
+    {% if t.kwa_njia %}
+    <ul class="list">
+      {% for r in t.kwa_njia %}<li><span>{{ r.jina }} <span class="muted">({{ r.n }})</span></span><strong class="num">TSh {{ r.s|intcomma }}</strong></li>{% endfor %}
+    </ul>
+    {% else %}<p class="muted">Hakuna malipo bado.</p>{% endif %}
+    {% if wakubwa %}
+    <h2 style="margin-top:16px">Wachangiaji wakubwa</h2>
+    <ul class="list">
+      {% for m in wakubwa %}<li><a href="{% url 'mgeni' m.pk %}">{{ m.jina }}</a><strong class="num">TSh {{ m.jumla_iliyotolewa|intcomma }}</strong></li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="head" style="margin-bottom:8px">
+    <div>
+      <h2>Ujumbe wa WhatsApp</h2>
+      <p class="help" style="margin:0">
+        Vikumbusho: {% if harusi.vikumbusho_vimewashwa %}mara {{ harusi.vikumbusho_kwa_siku }} kwa siku kwa ambao hawajachangia{% else %}vimezimwa{% endif %}
+        · Leo: jumbe {{ t.jumbe_leo }}{% if t.jumbe_zilizoshindwa %} · <span style="color:var(--err)">zilizoshindwa: {{ t.jumbe_zilizoshindwa }}</span>{% endif %}
+      </p>
+    </div>
+    <form method="post" action="{% url 'tuma_vikumbusho' %}">{% csrf_token %}<button class="btn">Tuma vikumbusho sasa</button></form>
+  </div>
+  {% if jumbe %}
+  <div class="scroll"><table>
+    <thead><tr><th>Mgeni</th><th>Aina</th><th>Hali</th><th>Muda</th></tr></thead>
+    <tbody>
+    {% for j in jumbe %}
+      <tr><td><a href="{% url 'mgeni' j.mgeni_id %}">{{ j.mgeni.jina }}</a></td><td>{{ j.get_aina_display }}</td>
+        <td><span class="chip c-{{ j.hali }}">{{ j.get_hali_display }}</span></td><td class="muted">{{ j.created|naturaltime }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">Bado hakuna ujumbe uliotumwa.</p>{% endif %}
+</section>
+{% endblock %}

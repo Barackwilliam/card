@@ -1,0 +1,14 @@
+{% extends "michango/base.html" %}
+{% block title %}Ingiza mchango{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Ingiza mchango</h1>{% if mg %}<p class="sub">Kutoka kwa {{ mg.jina }}</p>{% endif %}</div></div>
+<div class="panel">
+  <form method="post" class="stack">{% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form.visible_fields %}{% include "michango/_field.html" %}{% endfor %}
+    {% for h in form.hidden_fields %}{{ h }}{% endfor %}
+    <p class="help">Mgeni hayupo kwenye orodha? <a href="{% url 'mgeni_mpya' %}">Mwongeze kwanza</a>.</p>
+    <div class="row"><button class="btn gold">Hifadhi mchango</button><a class="btn" href="{% url 'michango' %}">Ghairi</a></div>
+  </form>
+</div>
+{% endblock %}

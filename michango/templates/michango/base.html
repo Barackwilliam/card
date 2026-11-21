@@ -1,0 +1,32 @@
+{% load static %}<!doctype html>
+<html lang="sw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Michango{% endblock %} · {{ harusi.jina|default:"Michango ya Harusi" }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap">
+<link rel="stylesheet" href="{% static 'michango/app.css' %}">
+</head>
+<body>
+{% if user.is_authenticated %}
+<header class="top"><div class="top-in">
+  <a class="brand" href="{% url 'dashibodi' %}">{{ harusi.jina|default:"Michango ya Harusi" }}</a>
+  {% with u=request.resolver_match.url_name %}
+  <nav class="nav" aria-label="Menyu">
+    <a href="{% url 'dashibodi' %}" class="{% if u == 'dashibodi' %}on{% endif %}">Dashibodi</a>
+    <a href="{% url 'wageni' %}" class="{% if u == 'wageni' or u == 'mgeni' or u == 'mgeni_hariri' or u == 'mgeni_mpya' %}on{% endif %}">Wageni</a>
+    <a href="{% url 'michango' %}" class="{% if u == 'michango' or u == 'mchango_mpya' %}on{% endif %}">Michango</a>
+    <a href="{% url 'ingiza' %}" class="{% if u == 'ingiza' %}on{% endif %}">Ingiza orodha</a>
+    {% if user.is_staff %}<a href="{% url 'admin:index' %}">Mipangilio</a>{% endif %}
+    <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button class="btn" style="padding:6px 10px">Toka</button></form>
+  </nav>
+  {% endwith %}
+</div></header>
+{% endif %}
+<main class="wrap">
+  {% if messages %}<div class="msgs" role="status">{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

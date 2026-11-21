@@ -1,0 +1,13 @@
+{% extends "michango/base.html" %}
+{% block title %}{% if m %}Hariri {{ m.jina }}{% else %}Mgeni mpya{% endif %}{% endblock %}
+{% block content %}
+<div class="head"><h1>{% if m %}Hariri {{ m.jina }}{% else %}Mgeni mpya{% endif %}</h1></div>
+<div class="panel">
+  <form method="post" class="stack">{% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}{% include "michango/_field.html" %}{% endfor %}
+    <p class="help">Andika jina bila "Bw. &amp; Bi.": vyeo tayari viko kwenye kadi juu ya jina.</p>
+    <div class="row"><button class="btn pri">Hifadhi</button><a class="btn" href="{% if m %}{% url 'mgeni' m.pk %}{% else %}{% url 'wageni' %}{% endif %}">Ghairi</a></div>
+  </form>
+</div>
+{% endblock %}

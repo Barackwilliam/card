@@ -1,2 +1,11 @@
+# Taarifa binafsi za wageni: hazipelekwi GitHub
 kadi_tayari/
 orodha/
+
+# Django
+.env
+*.sqlite3
+media/
+staticfiles/
+__pycache__/
+*.pyc

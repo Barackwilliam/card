@@ -1,0 +1,197 @@
+"""Huduma kuu: kutuma kadi, vikumbusho na shukrani, na kuhesabu takwimu."""
+import logging
+from dataclasses import dataclass, field
+from datetime import timedelta
+
+from django.conf import settings
+from django.db.models import Count, Q, Sum
+from django.utils import timezone
+
+from . import whatsapp
+from .kadi import tengeneza_kadi
+from .models import Harusi, Mchango, Mgeni, Ujumbe
+
+log = logging.getLogger("michango")
+
+# Saa ambazo vikumbusho vinaruhusiwa kutumwa (saa za Tanzania)
+SAA_YA_KUANZA = 8
+SAA_YA_MWISHO = 20
+
+
+def tsh(n) -> str:
+    return f"{int(n or 0):,}"
+
+
+def tarehe(d) -> str:
+    return d.strftime("%d.%m.%Y")
+
+
+def url_kamili(file_field) -> str:
+    url = file_field.url
+    if url.startswith("http"):
+        return url
+    return settings.SITE_URL + (url if url.startswith("/") else "/" + url)
+
+
+def _rekodi(mgeni, aina, m: whatsapp.Matokeo) -> Ujumbe:
+    hali = "jaribio" if m.jaribio else ("umetumwa" if m.ok else "umeshindwa")
+    return Ujumbe.objects.create(mgeni=mgeni, aina=aina, hali=hali, wa_id=m.wa_id, kosa=m.kosa)
+
+
+def kwa_nini_hawezi_kutumiwa(mgeni) -> str | None:
+    if not mgeni.simu:
+        return "Hana namba ya simu."
+    if mgeni.amejitoa:
+        return "Ameomba asitumiwe ujumbe."
+    return None
+
+
+def tuma_kadi(mgeni: Mgeni) -> Ujumbe | None:
+    """Tengeneza (kama haipo) na tuma kadi kwa WhatsApp. Hurudisha kumbukumbu ya ujumbe."""
+    if kwa_nini_hawezi_kutumiwa(mgeni):
+        return None
+    if not mgeni.kadi:
+        tengeneza_kadi(mgeni)
+    h = mgeni.harusi
+    m = whatsapp.tuma_template(
+        mgeni.simu,
+        "kadi",
+        [mgeni.jina, h.mwenye_harusi, tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
+        picha_url=url_kamili(mgeni.kadi),
+    )
+    if m.ok and not m.jaribio:
+        mgeni.kadi_imetumwa = timezone.now()
+        mgeni.save(update_fields=["kadi_imetumwa"])
+    return _rekodi(mgeni, "kadi", m)
+
+
+def tuma_kikumbusho(mgeni: Mgeni) -> Ujumbe | None:
+    if kwa_nini_hawezi_kutumiwa(mgeni):
+        return None
+    h = mgeni.harusi
+    jumla = mgeni.jumla
+    if jumla and mgeni.ahadi and mgeni.ahadi > jumla:
+        m = whatsapp.tuma_template(
+            mgeni.simu,
+            "kikumbusho_salio",
+            [mgeni.jina, tsh(jumla), h.mwenye_harusi, tsh(mgeni.ahadi - jumla), tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
+        )
+    else:
+        m = whatsapp.tuma_template(
+            mgeni.simu,
+            "kikumbusho",
+            [mgeni.jina, h.mwenye_harusi, tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
+        )
+    return _rekodi(mgeni, "kikumbusho", m)
+
+
+def tuma_shukrani(mchango: Mchango) -> Ujumbe | None:
+    mgeni = mchango.mgeni
+    if not mgeni.harusi.shukrani_zimewashwa or kwa_nini_hawezi_kutumiwa(mgeni):
+        return None
+    m = whatsapp.tuma_template(
+        mgeni.simu, "shukrani", [mgeni.jina, tsh(mchango.kiasi), mgeni.harusi.mwenye_harusi, tsh(mgeni.jumla)]
+    )
+    return _rekodi(mgeni, "shukrani", m)
+
+
+@dataclass
+class MatokeoVikumbusho:
+    vimetumwa: int = 0
+    vimeshindwa: int = 0
+    vimerukwa: int = 0
+    sababu: str = ""
+    makosa: list = field(default_factory=list)
+
+
+def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
+    """Tuma vikumbusho kwa wanaostahili.
+
+    Inaweza kuitwa mara nyingi kwa siku (mfano saa 3 asubuhi na saa 12 jioni).
+    Mgeni mmoja hapokei zaidi ya `vikumbusho_kwa_siku`, na kuna pengo la chini
+    kati ya kikumbusho kimoja na kingine, hivyo kuitwa mara mbili kwa bahati mbaya
+    hakumtumii mtu ujumbe mara mbili.
+    """
+    sasa = sasa or timezone.now()
+    leo_local = timezone.localtime(sasa)
+    res = MatokeoVikumbusho()
+
+    if not harusi.vikumbusho_vimewashwa or harusi.vikumbusho_kwa_siku == 0:
+        res.sababu = "Vikumbusho vimezimwa."
+        return res
+    if leo_local.date() > harusi.tarehe_mwisho:
+        res.sababu = "Muda wa kuchangia umeisha."
+        return res
+    if not (SAA_YA_KUANZA <= leo_local.hour < SAA_YA_MWISHO):
+        res.sababu = f"Nje ya saa za kutuma ({SAA_YA_KUANZA}:00-{SAA_YA_MWISHO}:00)."
+        return res
+
+    mwanzo_wa_siku = leo_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    pengo = timedelta(hours=max((SAA_YA_MWISHO - SAA_YA_KUANZA) / harusi.vikumbusho_kwa_siku - 1, 1))
+    hesabika = ~Q(jumbe__hali="umeshindwa")
+
+    wageni = (
+        harusi.wageni.wanaostahili_kikumbusho()
+        .annotate(
+            vya_leo=Count(
+                "jumbe",
+                filter=Q(jumbe__aina="kikumbusho", jumbe__created__gte=mwanzo_wa_siku) & hesabika,
+                distinct=True,
+            )
+        )
+        .select_related("harusi")
+    )
+    for mgeni in wageni:
+        if mgeni.vya_leo >= harusi.vikumbusho_kwa_siku:
+            res.vimerukwa += 1
+            continue
+        mwisho = (
+            mgeni.jumbe.filter(aina__in=["kikumbusho", "kadi"]).exclude(hali="umeshindwa").order_by("-created").first()
+        )
+        if mwisho and sasa - mwisho.created < pengo:
+            res.vimerukwa += 1
+            continue
+        u = tuma_kikumbusho(mgeni)
+        if u and u.hali != "umeshindwa":
+            res.vimetumwa += 1
+        else:
+            res.vimeshindwa += 1
+            if u:
+                res.makosa.append(f"{mgeni.jina}: {u.kosa}")
+    log.info("Vikumbusho: %s", res)
+    return res
+
+
+def takwimu(harusi: Harusi) -> dict:
+    wageni = harusi.wageni.all()
+    michango = Mchango.objects.filter(mgeni__harusi=harusi)
+    jumla_michango = michango.aggregate(s=Sum("kiasi"))["s"] or 0
+    ahadi = wageni.aggregate(s=Sum("ahadi"))["s"] or 0
+    na_jumla = list(harusi.wageni.na_jumla().values("ahadi", "jumla_iliyotolewa"))
+    salio_ahadi = sum(max((r["ahadi"] or 0) - r["jumla_iliyotolewa"], 0) for r in na_jumla)
+    wote = wageni.count()
+    wamechangia = wageni.filter(michango__isnull=False).distinct().count()
+    kwa_njia = list(
+        michango.values("njia").annotate(s=Sum("kiasi"), n=Count("id")).order_by("-s")
+    )
+    majina_njia = dict(Mchango.NJIA)
+    for r in kwa_njia:
+        r["jina"] = majina_njia.get(r["njia"], r["njia"])
+    return {
+        "wageni": wote,
+        "wametumiwa": wageni.filter(kadi_imetumwa__isnull=False).count(),
+        "hawajatumiwa": wageni.filter(kadi_imetumwa__isnull=True).count(),
+        "wamechangia": wamechangia,
+        "hawajachangia": wote - wamechangia,
+        "jumla_michango": jumla_michango,
+        "idadi_michango": michango.count(),
+        "ahadi": ahadi,
+        "salio_ahadi": salio_ahadi,
+        "asilimia_wamechangia": round(100 * wamechangia / wote) if wote else 0,
+        "kwa_njia": kwa_njia,
+        "jumbe_leo": Ujumbe.objects.filter(
+            mgeni__harusi=harusi, created__date=timezone.localdate()
+        ).exclude(hali="umeshindwa").count(),
+        "jumbe_zilizoshindwa": Ujumbe.objects.filter(mgeni__harusi=harusi, hali="umeshindwa").count(),
+        "whatsapp_hewani": whatsapp.iko_hewani(),
+    }

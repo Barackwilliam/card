@@ -1,0 +1,82 @@
+{% extends "michango/base.html" %}
+{% load humanize %}
+{% block title %}{{ m.jina }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div>
+    <h1>{{ m.jina }}</h1>
+    <p class="sub">{{ m.simu|default:"Hana namba ya simu" }}{% if m.maelezo %} · {{ m.maelezo }}{% endif %}</p>
+  </div>
+  <div class="row"><a class="btn" href="{% url 'mgeni_hariri' m.pk %}">Hariri</a><a class="btn" href="{% url 'wageni' %}">‹ Wageni</a></div>
+</div>
+
+{% if m.amejitoa %}<div class="banner">Mgeni huyu ameomba asitumiwe ujumbe wa WhatsApp. Hatapokea kadi wala vikumbusho.</div>{% endif %}
+
+<section class="grid kpis">
+  <div class="panel kpi hero"><div class="lbl">Ametoa</div><div class="val"><small>TSh</small> {{ m.jumla_iliyotolewa|intcomma }}</div></div>
+  <div class="panel kpi"><div class="lbl">Ahadi</div><div class="val">{% if m.ahadi %}<small>TSh</small> {{ m.ahadi|intcomma }}{% else %}<small>Hakuna</small>{% endif %}</div></div>
+  <div class="panel kpi"><div class="lbl">Salio</div><div class="val"><small>TSh</small> {{ m.salio|intcomma }}</div></div>
+  <div class="panel kpi"><div class="lbl">Kadi</div><div class="val" style="font-size:18px">{% if m.kadi_imetumwa %}Imetumwa{% else %}Haijatumwa{% endif %}</div>
+    <div class="note">{% if m.kadi_imetumwa %}{{ m.kadi_imetumwa|date:"d.m.Y H:i" }}{% endif %}</div></div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Ingiza mchango</h2>
+    <form method="post" action="{% url 'mchango_mpya' %}" class="stack">{% csrf_token %}
+      {{ form.mgeni }}
+      <input type="hidden" name="rudi" value="{% url 'mgeni' m.pk %}">
+      <div class="row" style="align-items:start">
+        <div style="flex:1;min-width:140px"><label for="id_kiasi">Kiasi (TSh)</label>{{ form.kiasi }}</div>
+        <div style="flex:1;min-width:140px"><label for="id_tarehe">Tarehe</label>{{ form.tarehe }}</div>
+      </div>
+      <div class="row" style="align-items:start">
+        <div style="flex:1;min-width:140px"><label for="id_njia">Njia</label>{{ form.njia }}</div>
+        <div style="flex:1;min-width:140px"><label for="id_kumbukumbu">Namba ya muamala</label>{{ form.kumbukumbu }}</div>
+      </div>
+      <label class="row" style="font-weight:500">{{ form.tuma_shukrani }} {{ form.tuma_shukrani.label }}</label>
+      <button class="btn gold">Hifadhi mchango</button>
+    </form>
+
+    <h2 style="margin-top:20px">Michango yake</h2>
+    {% if michango %}
+    <ul class="list">
+      {% for c in michango %}
+      <li>
+        <span>{{ c.tarehe|date:"d.m.Y" }} · {{ c.get_njia_display }}{% if c.kumbukumbu %} · <span class="muted">{{ c.kumbukumbu }}</span>{% endif %}</span>
+        <span class="row"><strong>TSh {{ c.kiasi|intcomma }}</strong>
+          <form method="post" action="{% url 'mchango_futa' c.pk %}">{% csrf_token %}<button class="btn danger" style="padding:4px 8px" aria-label="Futa mchango huu" onclick="return this.dataset.ok==='1'||(this.dataset.ok='1',this.textContent='Thibitisha',false)">Futa</button></form>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Bado hajachangia.</p>{% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Kadi yake</h2>
+    {% if m.kadi %}<img class="kadi-img" src="{{ m.kadi.url }}" alt="Kadi ya {{ m.jina }}">{% else %}<p class="muted">Kadi bado haijatengenezwa. Itatengenezwa ikitumwa.</p>{% endif %}
+    <form method="post" action="{% url 'mgeni_kitendo' m.pk %}" class="row" style="margin-top:12px">{% csrf_token %}
+      <button class="btn pri" name="kitendo" value="tuma_kadi">{% if m.kadi_imetumwa %}Tuma kadi tena{% else %}Tuma kadi WhatsApp{% endif %}</button>
+      <button class="btn" name="kitendo" value="kikumbusho">Tuma kikumbusho</button>
+      <button class="btn" name="kitendo" value="tengeneza_kadi">Tengeneza upya</button>
+      {% if m.kadi_imetumwa %}
+        <button class="btn" name="kitendo" value="ondoa_alama">Ondoa alama ya kutumwa</button>
+      {% else %}
+        <button class="btn" name="kitendo" value="alama_imetumwa" title="Kama umemtumia kadi mwenyewe">Nimemtumia mwenyewe</button>
+      {% endif %}
+      {% if m.kadi %}<a class="btn" href="{{ m.kadi.url }}" download>Pakua kadi</a>{% endif %}
+    </form>
+
+    <h2 style="margin-top:20px">Ujumbe uliotumwa</h2>
+    {% if jumbe %}
+    <ul class="list">
+      {% for j in jumbe %}
+      <li><span>{{ j.get_aina_display }} <span class="muted">· {{ j.created|date:"d.m H:i" }}</span>{% if j.kosa %}<br><small style="color:var(--err)">{{ j.kosa }}</small>{% endif %}</span>
+        <span class="chip c-{{ j.hali }}">{{ j.get_hali_display }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Hakuna ujumbe bado.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

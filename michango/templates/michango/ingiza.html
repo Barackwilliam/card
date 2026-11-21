@@ -1,0 +1,27 @@
+{% extends "michango/base.html" %}
+{% block title %}Ingiza orodha{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Ingiza orodha ya wageni</h1><p class="sub">Ingiza wageni wengi kwa mara moja kutoka Excel au Google Sheets.</p></div></div>
+<div class="grid two">
+  <div class="panel">
+    <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}
+      {% for field in form %}{% include "michango/_field.html" %}{% endfor %}
+      <button class="btn pri">Ingiza</button>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>Muundo wa faili</h2>
+    <p>Mstari wa kwanza uwe na vichwa hivi. Ni <strong>jina</strong> tu ndilo la lazima:</p>
+<pre style="background:var(--bg);padding:10px;border-radius:8px;overflow-x:auto">jina,simu,ahadi,ametoa
+John Mushi,0711000001,200000,200000
+Asha Said,0711000002,,
+Neema Mollel,0711000003,150000,50000</pre>
+    <ul class="help">
+      <li>Namba zinaweza kuanza na 07, 06, +255 au namba za nje (+420, +61…).</li>
+      <li>Mgeni mwenye namba ileile akiwepo tayari, taarifa zake zinasasishwa badala ya kuongezwa mara mbili.</li>
+      <li>"ametoa" inaongezwa kama mchango tu kama mgeni hana mchango wowote bado, kwa hiyo kuingiza faili lilelile mara mbili hakuongezi pesa mara mbili.</li>
+      <li>Excel: File → Save As → CSV UTF-8.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

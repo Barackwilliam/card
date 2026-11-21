@@ -1,0 +1,12 @@
+{% extends "michango/base.html" %}
+{% block title %}Anzisha{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Bado hakuna harusi</h1>
+  <p>Anzisha harusi kwanza: jina, bwana harusi, tarehe ya mwisho, maelekezo ya malipo na picha ya kadi.</p>
+  <div class="row">
+    {% if user.is_staff %}<a class="btn pri" href="{% url 'admin:michango_harusi_add' %}">Anzisha harusi</a>{% endif %}
+  </div>
+  <p class="help">Au kwenye terminal: <code>python manage.py anzisha_harusi --malipo "M-Pesa 0754 000 000"</code></p>
+</div>
+{% endblock %}

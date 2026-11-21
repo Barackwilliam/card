@@ -1,0 +1,36 @@
+{% extends "michango/base.html" %}
+{% load humanize %}
+{% block title %}Michango{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Michango</h1><p class="sub">Jumla{% if njia %} (kichujio){% endif %}: <strong>TSh {{ jumla|intcomma }}</strong> · malipo {{ page.paginator.count }}</p></div>
+  <div class="row">
+    <a class="btn" href="?njia={{ njia }}&pakua=csv">Pakua Excel (CSV)</a>
+    <a class="btn gold" href="{% url 'mchango_mpya' %}">+ Ingiza mchango</a>
+  </div>
+</div>
+<nav class="tabs" aria-label="Njia za malipo">
+  <a href="?" class="{% if not njia %}on{% endif %}">Zote</a>
+  {% for k, jina in njia_zote %}<a href="?njia={{ k }}" class="{% if njia == k %}on{% endif %}">{{ jina }}</a>{% endfor %}
+</nav>
+<div class="panel scroll">
+  <table>
+    <thead><tr><th>Tarehe</th><th>Jina</th><th>Njia</th><th>Muamala</th><th class="num">Kiasi (TSh)</th></tr></thead>
+    <tbody>
+    {% for c in page %}
+      <tr><td>{{ c.tarehe|date:"d.m.Y" }}</td><td><a href="{% url 'mgeni' c.mgeni_id %}">{{ c.mgeni.jina }}</a></td>
+        <td>{{ c.get_njia_display }}</td><td class="muted">{{ c.kumbukumbu|default:"—" }}</td><td class="num"><strong>{{ c.kiasi|intcomma }}</strong></td></tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted">Hakuna michango bado.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pager">
+    {% if page.has_previous %}<a class="btn" href="?njia={{ njia }}&ukurasa={{ page.previous_page_number }}">‹ Nyuma</a>{% endif %}
+    <span class="muted">Ukurasa {{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn" href="?njia={{ njia }}&ukurasa={{ page.next_page_number }}">Mbele ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
