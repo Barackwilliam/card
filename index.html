@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="sw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Kiwanda cha Kadi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@500;700;800&family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: kontroli upande wa kushoto, onyesho la kadi kulia; kwenye simu vinapangwa juu-chini */
+:root{
+  --bg:#f5f6fa; --panel:#ffffff; --fg:#141a33; --muted:#5b6380; --line:#dfe2ec;
+  --navy:#13235e; --gold:#b8892b; --gold-soft:#f3e7cc; --ok:#1f7a4a; --err:#a8322d;
+  --display:"Playfair Display", Georgia, serif; --body:"Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1220; --panel:#171b2e; --fg:#e9ebf5; --muted:#a2a8c3; --line:#2a3050;
+  --navy:#9fb2ff; --gold:#e0b45a; --gold-soft:#2e2717; --ok:#5fcf94; --err:#ff8a83; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1220; --panel:#171b2e; --fg:#e9ebf5; --muted:#a2a8c3; --line:#2a3050;
+  --navy:#9fb2ff; --gold:#e0b45a; --gold-soft:#2e2717; --ok:#5fcf94; --err:#ff8a83; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);margin:0;color:var(--navy);text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.step{display:flex;flex-direction:column;gap:8px}
+.step>label,.lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.templates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tpl{border:2px solid var(--line);border-radius:8px;padding:0;background:none;cursor:pointer;overflow:hidden;aspect-ratio:2/3;position:relative;color:var(--fg)}
+.tpl img{width:100%;height:100%;object-fit:cover;display:block}
+.tpl[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-soft)}
+.tpl.upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:600;color:var(--muted);border-style:dashed;text-align:center;padding:6px}
+.tpl.upload span{font-size:28px;line-height:1;color:var(--gold)}
+textarea{width:100%;min-height:180px;resize:vertical;font:15px/1.6 var(--body);padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{min-width:0}
+select,input[type=color]{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+input[type=color]{padding:2px;width:46px;height:38px}
+input[type=range]{flex:1;accent-color:var(--gold)}
+.btn{font:600 15px var(--body);border-radius:10px;padding:12px 16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--navy);color:var(--panel);border-color:var(--navy)}
+.btn:disabled{opacity:.55;cursor:progress}
+.btn:focus-visible,.tpl:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.status{font-size:14px;min-height:1.5em;margin:0}
+.status.ok{color:var(--ok)} .status.err{color:var(--err)}
+.preview{position:sticky;top:12px}
+.stage{display:flex;justify-content:center;background:var(--bg);border-radius:8px;padding:10px}
+#cv{max-width:100%;max-height:72vh;height:auto;border-radius:6px;cursor:grab;touch-action:none;box-shadow:0 6px 24px rgb(0 0 0 / .18)}
+#cv.drag{cursor:grabbing}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pager b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.count{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
+@media (max-width:860px){.preview{position:static}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Kiwanda cha Kadi za Mchango</h1>
+    <p>Andika majina yote mara moja. Kila jina linawekwa kwenye kadi yake, kisha unapakua kadi zote kwa pamoja kwenye faili moja la ZIP.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Mipangilio">
+      <div class="step">
+        <span class="lbl">1. Chagua kadi</span>
+        <div class="templates" id="tpls">
+          <button class="tpl" data-id="bluu" aria-pressed="true" aria-label="Kadi ya bluu na dhahabu"><img src="templates/bluu.jpg" alt=""></button>
+          <button class="tpl" data-id="maua" aria-pressed="false" aria-label="Kadi ya maua"><img src="templates/maua.jpg" alt=""></button>
+          <button class="tpl upload" id="uploadBtn" type="button"><span>+</span>Weka kadi yako</button>
+        </div>
+        <input type="file" id="file" accept="image/*" hidden>
+      </div>
+
+      <div class="step">
+        <label for="names">2. Majina (jina moja kila mstari)</label>
+        <textarea id="names" spellcheck="false"></textarea>
+        <p class="hint">Unaweza kunakili orodha kutoka WhatsApp, Excel au Notes na kuibandika hapa.</p>
+      </div>
+
+      <div class="step">
+        <span class="lbl">3. Mwonekano wa jina</span>
+        <div class="row">
+          <select id="font" aria-label="Aina ya herufi">
+            <option value="Great Vibes">Mwandiko (Great Vibes)</option>
+            <option value="Playfair Display|italic 700">Playfair italiki</option>
+            <option value="Playfair Display|700">Playfair</option>
+            <option value="Montserrat|800">Montserrat nzito</option>
+            <option value="Montserrat|700">Montserrat</option>
+          </select>
+          <input type="color" id="color" aria-label="Rangi ya jina">
+        </div>
+        <div class="row">
+          <label for="size" class="hint">Ukubwa</label>
+          <input type="range" id="size" min="16" max="110" step="1">
+        </div>
+        <p class="hint">Bofya au buruta jina kwenye kadi ili kulisogeza.</p>
+      </div>
+
+      <button class="btn primary" id="zipBtn">Pakua kadi zote (ZIP)</button>
+      <p class="status" id="status" role="status"></p>
+    </section>
+
+    <section class="panel preview" aria-label="Onyesho">
+      <div class="pager">
+        <button class="btn" id="prev" aria-label="Jina lililopita">‹</button>
+        <b id="curName">—</b>
+        <span class="count" id="count"></span>
+        <button class="btn" id="next" aria-label="Jina linalofuata">›</button>
+      </div>
+      <div class="stage"><canvas id="cv"></canvas></div>
+      <button class="btn" id="oneBtn">Pakua kadi hii peke yake</button>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// Mipangilio ya kila kadi. x,y ni sehemu ya upana/urefu wa picha (0..1); y ni mstari wa chini wa herufi.
+const PRESETS = {
+  bluu: {src:"templates/bluu.jpg", x:598/1024, y:646/1536, size:54, maxW:560/1024, font:"Great Vibes", color:"#0d1b4d"},
+  maua: {src:"templates/maua.jpg", x:550/1046, y:517/1504, size:38, maxW:560/1046, font:"Montserrat|800", color:"#0b3d91"},
+};
+const SAMPLE = ["Bw. & Bi. John Mushi","Dkt. Neema Mollel","Mch. Peter Kimaro","Eng. Asha Said","Bi. Rehema Juma"].join("\n");
+
+const $ = s => document.querySelector(s);
+const cv = $("#cv"), ctx = cv.getContext("2d");
+const state = {tpl:"bluu", img:null, idx:0, custom:null, cfg:{}};
+const store = { get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}} };
+
+function names(){ return $("#names").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean); }
+function cfg(){ return state.cfg[state.tpl]; }
+function fontSpec(c, px){
+  const [fam, style] = c.font.split("|");
+  return `${style||"400"} ${px}px "${fam}", Georgia, serif`;
+}
+function loadImg(src){ return new Promise((ok,bad)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=bad; i.src=src; }); }
+
+async function ensureFont(c){
+  try{ await document.fonts.load(fontSpec(c, 40)); }catch{}
+}
+
+// Chora kadi moja kwenye canvas yoyote
+function draw(canvas, img, c, name){
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  const g = canvas.getContext("2d");
+  g.drawImage(img,0,0);
+  if(!name) return;
+  const W = canvas.width, H = canvas.height;
+  let px = c.size * (W/1024);
+  const maxW = c.maxW * W;
+  g.font = fontSpec(c, px);
+  // punguza ukubwa kama jina ni refu kuliko nafasi
+  while(g.measureText(name).width > maxW && px > 10){ px -= 1; g.font = fontSpec(c, px); }
+  g.fillStyle = c.color; g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillText(name, c.x*W, c.y*H);
+}
+
+function render(){
+  const list = names();
+  if(state.idx >= list.length) state.idx = Math.max(0, list.length-1);
+  const name = list[state.idx] || "";
+  $("#curName").textContent = name || "Andika jina kwanza";
+  $("#count").textContent = list.length ? `${state.idx+1} / ${list.length}` : "0";
+  if(state.img) draw(cv, state.img, cfg(), name);
+}
+
+function syncControls(){
+  const c = cfg();
+  $("#font").value = c.font; $("#color").value = c.color; $("#size").value = c.size;
+}
+
+async function selectTpl(id){
+  state.tpl = id;
+  document.querySelectorAll(".tpl[data-id]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.id===id)));
+  const c = cfg();
+  state.img = await loadImg(c.src);
+  await ensureFont(c);
+  syncControls(); render(); save();
+}
+
+function save(){ store.set("kadi.names", $("#names").value); store.set("kadi.cfg", JSON.stringify({tpl:state.tpl, bluu:state.cfg.bluu, maua:state.cfg.maua})); }
+
+// Kuhifadhi faili: ndani ya Claude tunatumia uwezo wa "downloads"; nje tunatumia kiungo cha kawaida
+let dl;
+async function saver(){
+  if(dl !== undefined) return dl;
+  dl = null;
+  if(window.claude && typeof window.claude.use === "function"){ try{ dl = await window.claude.use("downloads"); }catch{ dl=null; } }
+  return dl;
+}
+async function saveFile(filename, blob){
+  const d = await saver();
+  if(d){ await d.save({filename, data: blob}); return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+const toBlob = c => new Promise(r=>c.toBlob(r,"image/jpeg",0.92));
+const safe = n => n.replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,80) || "kadi";
+
+function status(msg, kind=""){ const s=$("#status"); s.textContent=msg; s.className="status "+kind; }
+function errMsg(e){
+  if(e && e.code==="declined") return "Upakuaji umesitishwa.";
+  if(e && e.code==="rate_limited") return "Subiri kidogo kisha ujaribu tena.";
+  return "Imeshindikana kupakua. Jaribu tena.";
+}
+
+$("#zipBtn").onclick = async () => {
+  const list = names();
+  if(!list.length){ status("Weka angalau jina moja kwanza.","err"); return; }
+  const btn = $("#zipBtn"); btn.disabled = true;
+  try{
+    const zip = new JSZip(), off = document.createElement("canvas"), used = {};
+    for(let i=0;i<list.length;i++){
+      status(`Inatengeneza kadi ${i+1} kati ya ${list.length}…`);
+      draw(off, state.img, cfg(), list[i]);
+      let fn = `${String(i+1).padStart(3,"0")} - ${safe(list[i])}`;
+      if(used[fn]) fn += ` (${++used[fn]})`; else used[fn]=1;
+      zip.file(fn+".jpg", await toBlob(off));
+      if(i%5===4) await new Promise(r=>setTimeout(r));
+    }
+    status("Inafunga ZIP…");
+    const blob = await zip.generateAsync({type:"blob"});
+    await saveFile(`Kadi za Mchango (${list.length}).zip`, blob);
+    status(`Tayari: kadi ${list.length} zimepakuliwa.`,"ok");
+  }catch(e){ status(errMsg(e),"err"); }
+  finally{ btn.disabled = false; }
+};
+
+$("#oneBtn").onclick = async () => {
+  const name = names()[state.idx];
+  if(!name){ status("Weka jina kwanza.","err"); return; }
+  try{ await saveFile(`Kadi - ${safe(name)}.jpg`, await toBlob(cv)); status(`Kadi ya ${name} imepakuliwa.`,"ok"); }
+  catch(e){ status(errMsg(e),"err"); }
+};
+
+$("#prev").onclick = ()=>{ const n=names().length; if(n){ state.idx=(state.idx-1+n)%n; render(); } };
+$("#next").onclick = ()=>{ const n=names().length; if(n){ state.idx=(state.idx+1)%n; render(); } };
+$("#names").addEventListener("input", ()=>{ render(); save(); });
+$("#font").onchange = async e=>{ cfg().font=e.target.value; await ensureFont(cfg()); render(); save(); };
+$("#color").oninput = e=>{ cfg().color=e.target.value; render(); save(); };
+$("#size").oninput = e=>{ cfg().size=+e.target.value; render(); save(); };
+document.querySelectorAll(".tpl[data-id]").forEach(b=> b.onclick = ()=>selectTpl(b.dataset.id));
+
+// Kadi yako mwenyewe
+$("#uploadBtn").onclick = ()=> $("#file").click();
+$("#file").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  state.cfg.custom = {src:url, x:.5, y:.45, size:48, maxW:.7, font:"Great Vibes", color:"#13235e"};
+  let b = document.querySelector('.tpl[data-id="custom"]');
+  if(!b){
+    b = document.createElement("button"); b.className="tpl"; b.dataset.id="custom"; b.setAttribute("aria-label","Kadi yako");
+    b.innerHTML = '<img alt="">'; b.onclick=()=>selectTpl("custom");
+    $("#tpls").insertBefore(b, $("#uploadBtn"));
+  }
+  b.querySelector("img").src = url;
+  selectTpl("custom");
+  status("Bofya kwenye kadi mahali jina linapotakiwa kukaa.");
+};
+
+// Kusogeza jina kwa kubofya / kuburuta
+function moveTo(ev){
+  const r = cv.getBoundingClientRect();
+  const c = cfg();
+  c.x = Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width));
+  c.y = Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height)) + (c.size*0.3)/1024*(cv.width/cv.height);
+  render();
+}
+let dragging=false;
+cv.addEventListener("pointerdown", e=>{ dragging=true; cv.classList.add("drag"); cv.setPointerCapture(e.pointerId); moveTo(e); });
+cv.addEventListener("pointermove", e=>{ if(dragging) moveTo(e); });
+cv.addEventListener("pointerup", ()=>{ dragging=false; cv.classList.remove("drag"); save(); });
+
+// Anza
+(function init(){
+  state.cfg = {bluu:{...PRESETS.bluu}, maua:{...PRESETS.maua}};
+  try{
+    const saved = JSON.parse(store.get("kadi.cfg")||"null");
+    if(saved){ ["bluu","maua"].forEach(k=>{ if(saved[k]) Object.assign(state.cfg[k], saved[k], {src:PRESETS[k].src}); }); if(saved.tpl in PRESETS) state.tpl = saved.tpl; }
+  }catch{}
+  $("#names").value = store.get("kadi.names") ?? SAMPLE;
+  selectTpl(state.tpl);
+})();
+</script>
+
+</body>
+</html>
