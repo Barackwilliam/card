@@ -1,6 +1,6 @@
-<div>
+<div class="field">
   {% if field.field.widget.input_type == "checkbox" %}
-    <label class="row" style="font-weight:500">{{ field }} {{ field.label }}</label>
+    <label class="switch" style="font-weight:600"><span>{{ field.label }}</span>{{ field }}</label>
   {% else %}
     <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
   {% endif %}

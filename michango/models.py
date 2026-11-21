@@ -25,10 +25,17 @@ def safisha_simu(simu: str) -> str:
 
 
 class Harusi(models.Model):
-    FONTI = [
-        ("GreatVibes-Regular.ttf", "Mwandiko (Great Vibes)"),
-        ("Montserrat-Bold.ttf", "Montserrat nzito"),
+    # (faili, jina linaloonyeshwa, CSS ya onyesho kwenye browser)
+    FONTI_ZOTE = [
+        ("PlayfairDisplay-BoldItalic.ttf", "Playfair", "italic 700 {px}px 'Playfair Display'"),
+        ("DancingScript-Bold.ttf", "Dancing Script", "700 {px}px 'Dancing Script'"),
+        ("Cinzel-Bold.ttf", "Cinzel", "700 {px}px 'Cinzel'"),
+        ("Poppins-SemiBold.ttf", "Poppins", "600 {px}px 'Poppins'"),
+        ("Montserrat-Bold.ttf", "Montserrat", "700 {px}px 'Montserrat'"),
+        ("Allura-Regular.ttf", "Allura", "400 {px}px 'Allura'"),
+        ("GreatVibes-Regular.ttf", "Great Vibes", "400 {px}px 'Great Vibes'"),
     ]
+    FONTI = [(f, jina) for f, jina, _ in FONTI_ZOTE]
 
     jina = models.CharField("Jina la shughuli", max_length=200, help_text="Mfano: Harusi ya Richard Ngelula")
     mwenye_harusi = models.CharField("Bwana/Bibi harusi", max_length=120, help_text="Mfano: Richard Ngelula")
@@ -43,10 +50,10 @@ class Harusi(models.Model):
     kadi_template = models.ImageField("Picha ya kadi (bila jina)", upload_to="templates/")
     jina_x = models.FloatField("Jina: nafasi ya mlalo (0-1)", default=0.499)
     jina_y = models.FloatField("Jina: mstari wa chini wa herufi (0-1)", default=0.4538)
-    jina_ukubwa = models.PositiveSmallIntegerField("Jina: ukubwa (kwa upana wa 1024px)", default=50)
+    jina_ukubwa = models.PositiveSmallIntegerField("Jina: ukubwa (kwa upana wa 1024px)", default=40)
     jina_upana_max = models.FloatField("Jina: upana mkubwa zaidi (0-1)", default=0.72)
     jina_rangi = models.CharField("Jina: rangi", max_length=7, default="#0d1b4d")
-    jina_fonti = models.CharField("Jina: aina ya herufi", max_length=60, choices=FONTI, default=FONTI[0][0])
+    jina_fonti = models.CharField("Jina: aina ya herufi", max_length=60, choices=FONTI, default="PlayfairDisplay-BoldItalic.ttf")
 
     vikumbusho_vimewashwa = models.BooleanField("Tuma vikumbusho", default=True)
     vikumbusho_kwa_siku = models.PositiveSmallIntegerField(

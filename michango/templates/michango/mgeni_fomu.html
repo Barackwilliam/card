@@ -1,13 +1,19 @@
 {% extends "michango/base.html" %}
 {% block title %}{% if m %}Hariri {{ m.jina }}{% else %}Mgeni mpya{% endif %}{% endblock %}
+{% block back %}<a class="back" href="{% if m %}{% url 'mgeni' m.pk %}{% else %}{% url 'wageni' %}{% endif %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
+{% block brand %}{% if m %}Hariri mgeni{% else %}Mgeni mpya{% endif %}{% endblock %}
 {% block content %}
-<div class="head"><h1>{% if m %}Hariri {{ m.jina }}{% else %}Mgeni mpya{% endif %}</h1></div>
-<div class="panel">
-  <form method="post" class="stack">{% csrf_token %}
+<section class="card">
+  <form method="post" class="form">{% csrf_token %}
     {{ form.non_field_errors }}
-    {% for field in form %}{% include "michango/_field.html" %}{% endfor %}
-    <p class="help">Andika jina bila "Bw. &amp; Bi.": vyeo tayari viko kwenye kadi juu ya jina.</p>
-    <div class="row"><button class="btn pri">Hifadhi</button><a class="btn" href="{% if m %}{% url 'mgeni' m.pk %}{% else %}{% url 'wageni' %}{% endif %}">Ghairi</a></div>
+    <div class="field"><label for="id_jina">Jina</label>{{ form.jina }}
+      <div class="help">Andika jina tu, bila "Bw. &amp; Bi.": vyeo tayari viko kwenye kadi.</div>{{ form.jina.errors }}</div>
+    <div class="field"><label for="id_simu">Namba ya WhatsApp</label>{{ form.simu }}{{ form.simu.errors }}</div>
+    <div class="field"><label for="id_ahadi">Ameahidi kiasi gani? (si lazima)</label>{{ form.ahadi }}{{ form.ahadi.errors }}</div>
+    <div class="field"><label for="id_maelezo">Maelezo (si lazima)</label>{{ form.maelezo }}</div>
+    {% if m %}<label class="switch"><span>Ameomba asitumiwe ujumbe</span>{{ form.amejitoa }}</label>{% endif %}
+    <button class="btn pri block"><svg class="ico"><use href="#i-check"/></svg>Hifadhi</button>
   </form>
-</div>
+</section>
+{% if not m %}<a class="btn block" href="{% url 'ingiza' %}"><svg class="ico"><use href="#i-file"/></svg>Una orodha ndefu? Ingiza kutoka Excel</a>{% endif %}
 {% endblock %}

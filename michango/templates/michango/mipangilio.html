@@ -1,0 +1,181 @@
+{% extends "michango/base.html" %}
+{% load l10n %}
+{% block title %}Mipangilio{% endblock %}
+{% block head %}
+{% if sehemu == "kadi" %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@700&family=Dancing+Script:wght@700&family=Great+Vibes&family=Montserrat:wght@700&family=Poppins:wght@600&display=swap">
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Mipangilio</h1></div></div>
+
+<nav class="tabs" aria-label="Sehemu za mipangilio">
+  <a href="?sehemu=harusi" class="{% if sehemu == 'harusi' %}on{% endif %}">Harusi</a>
+  <a href="?sehemu=kadi" class="{% if sehemu == 'kadi' %}on{% endif %}">Kadi</a>
+  <a href="?sehemu=ujumbe" class="{% if sehemu == 'ujumbe' %}on{% endif %}">Ujumbe</a>
+</nav>
+
+{% if sehemu == "harusi" %}
+<section class="card">
+  <form method="post" class="form">{% csrf_token %}
+    <input type="hidden" name="sehemu" value="harusi">
+    {% for field in forms.harusi %}{% include "michango/_field.html" %}{% endfor %}
+    <button class="btn pri block"><svg class="ico"><use href="#i-check"/></svg>Hifadhi</button>
+  </form>
+</section>
+<section class="card">
+  <h2 style="margin-bottom:4px">Akaunti</h2>
+  <ul class="list">
+    <li><a class="item" href="{% url 'password_change' %}"><span class="avatar"><svg class="ico"><use href="#i-settings"/></svg></span><span class="item-main"><span class="item-title">Badilisha nenosiri</span><span class="item-sub">Umeingia kama {{ user.get_username }}</span></span><svg class="ico muted"><use href="#i-next"/></svg></a></li>
+    {% if user.is_staff %}<li><a class="item" href="{% url 'admin:index' %}"><span class="avatar"><svg class="ico"><use href="#i-file"/></svg></span><span class="item-main"><span class="item-title">Usimamizi wa juu</span><span class="item-sub">Kwa msimamizi wa mfumo tu</span></span><svg class="ico muted"><use href="#i-next"/></svg></a></li>{% endif %}
+    <li><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="item" style="width:100%;background:none;border:0;font:inherit;color:var(--err);cursor:pointer;text-align:left"><span class="avatar" style="background:var(--err-bg);color:var(--err)"><svg class="ico"><use href="#i-logout"/></svg></span><span class="item-main"><span class="item-title">Toka</span></span></button></form></li>
+  </ul>
+</section>
+
+{% elif sehemu == "kadi" %}
+<form method="post" class="designer" id="mbunifu">{% csrf_token %}
+  <input type="hidden" name="sehemu" value="kadi">
+  {% with f=forms.kadi %}
+  <input type="hidden" name="jina_x" id="jina_x" value="{{ f.jina_x.value|unlocalize }}">
+  <input type="hidden" name="jina_y" id="jina_y" value="{{ f.jina_y.value|unlocalize }}">
+  <input type="hidden" name="jina_rangi" id="jina_rangi" value="{{ f.jina_rangi.value }}">
+  <input type="hidden" name="tengeneza_upya" value="on">
+
+  <div class="preview">
+    <canvas id="cv" aria-label="Onyesho la kadi. Buruta jina kulisogeza."></canvas>
+    <p class="muted small" style="margin-top:8px;text-align:center">Buruta jina kwa kidole kulisogeza mahali unapotaka.</p>
+    <div class="zoom"><canvas id="zoom" aria-hidden="true"></canvas></div>
+  </div>
+
+  <div class="form">
+    {% if f.errors %}<div class="toast error"><svg class="ico"><use href="#i-alert"/></svg><span>Kuna tatizo kwenye mipangilio ya kadi. Jaribu tena.</span></div>{% endif %}
+    <section class="card form">
+      <div class="field"><label for="mfano">Jina la mfano (kwa kuangalia tu)</label>
+        <input type="text" id="mfano" value="{{ jina_mfano }}" autocomplete="off"></div>
+
+      <div class="field"><span class="label">Aina ya herufi</span>
+        <div class="fonts">
+          {% for fo in fonti %}
+          <label><input type="radio" name="jina_fonti" value="{{ fo.faili }}" data-css="{{ fo.css }}" {% if f.jina_fonti.value == fo.faili %}checked{% endif %}>
+            <span><b data-font="{{ fo.css }}">{{ jina_mfano|truncatechars:16 }}</b><small>{{ fo.jina }}</small></span></label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="field"><label for="jina_ukubwa">Ukubwa wa herufi</label>
+        <div class="range-row"><input type="range" name="jina_ukubwa" id="jina_ukubwa" min="16" max="120" value="{{ f.jina_ukubwa.value|unlocalize }}"><output id="ukubwa_out">{{ f.jina_ukubwa.value|unlocalize }}</output></div>
+        <div class="help">Jina refu linapunguzwa lenyewe ili litoshee.</div></div>
+
+      <div class="field"><label for="jina_upana_max">Upana wa juu wa jina</label>
+        <div class="range-row"><input type="range" name="jina_upana_max" id="jina_upana_max" min="0.3" max="0.95" step="0.01" value="{{ f.jina_upana_max.value|unlocalize }}"><output id="upana_out"></output></div></div>
+
+      <div class="field"><span class="label">Rangi</span>
+        <div class="swatches">
+          {% for r in rangi %}<label><input type="radio" name="rangi_haraka" value="{{ r }}" {% if f.jina_rangi.value|lower == r %}checked{% endif %}><span style="background:{{ r }}"></span><span class="sr-only">{{ r }}</span></label>{% endfor %}
+          <label title="Rangi nyingine"><input type="color" id="rangi_nyingine" value="{{ f.jina_rangi.value }}" aria-label="Chagua rangi nyingine"></label>
+        </div></div>
+    </section>
+
+    <button class="btn pri block" style="min-height:54px"><svg class="ico"><use href="#i-check"/></svg>Hifadhi muonekano</button>
+    <p class="muted small" style="text-align:center;margin-top:-6px">Kadi zilizokwisha tengenezwa zitatengenezwa upya kwa muonekano huu zikitumwa.</p>
+  </div>
+  {% endwith %}
+</form>
+
+<details class="card more">
+  <summary>Badilisha picha ya kadi yenyewe</summary>
+  <form method="post" enctype="multipart/form-data" class="form">{% csrf_token %}
+    <input type="hidden" name="sehemu" value="kadi"><input type="hidden" name="kitendo" value="picha">
+    <p class="muted small">Pakia picha ya kadi <b>bila jina la mgeni</b> (JPG au PNG). Baada ya kupakia, buruta jina mahali sahihi.</p>
+    <div class="field">{{ picha_form.picha }}{{ picha_form.picha.errors }}</div>
+    <button class="btn block"><svg class="ico"><use href="#i-upload"/></svg>Pakia picha</button>
+  </form>
+</details>
+
+{% elif sehemu == "ujumbe" %}
+<section class="card">
+  <form method="post" class="form">{% csrf_token %}
+    <input type="hidden" name="sehemu" value="ujumbe">
+    {% for field in forms.ujumbe %}{% include "michango/_field.html" %}{% endfor %}
+    <button class="btn pri block"><svg class="ico"><use href="#i-check"/></svg>Hifadhi</button>
+  </form>
+</section>
+<div class="notice info"><svg class="ico"><use href="#i-bell"/></svg><span>Vikumbusho vinaenda tu kwa waliotumiwa kadi na bado hawajachangia, au wenye salio la ahadi. Mtu akishachangia, havimfikii tena.</span></div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if sehemu == "kadi" %}
+<script>
+(() => {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const zoom = document.getElementById('zoom'), zctx = zoom.getContext('2d');
+  const f = document.getElementById('mbunifu');
+  const X = document.getElementById('jina_x'), Y = document.getElementById('jina_y'), RANGI = document.getElementById('jina_rangi');
+  const SIZE = document.getElementById('jina_ukubwa'), UPANA = document.getElementById('jina_upana_max');
+  const mfano = document.getElementById('mfano');
+  const img = new Image();
+  let tayari = false;
+
+  const fonti = () => (f.querySelector('input[name=jina_fonti]:checked') || f.querySelector('input[name=jina_fonti]')).dataset.css;
+
+  // Onyesha kila chaguo la fonti kwa fonti yake
+  f.querySelectorAll('[data-font]').forEach(b => { b.style.font = b.dataset.font.replace('{px}', '22'); });
+
+  function chora() {
+    if (!tayari) return;
+    const W = img.naturalWidth, H = img.naturalHeight;
+    cv.width = W; cv.height = H;
+    ctx.drawImage(img, 0, 0);
+    const jina = mfano.value.trim() || 'Jina la Mgeni';
+    let px = Math.max(Math.round(+SIZE.value * W / 1024), 8);
+    const css = fonti();
+    ctx.font = css.replace('{px}', px);
+    const maxW = +UPANA.value * W;
+    while (ctx.measureText(jina).width > maxW && px > 10) { px -= 1; ctx.font = css.replace('{px}', px); }
+    const x = +X.value * W, y = +Y.value * H;
+    ctx.fillStyle = RANGI.value; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(jina, x, y);
+    // Dirisha la kukuza: eneo la jina mara mbili zaidi
+    const zw = Math.min(W, maxW * 1.15), zh = Math.max(px * 2.6, 60);
+    const sx = Math.max(0, Math.min(W - zw, x - zw / 2)), sy = Math.max(0, Math.min(H - zh, y - px * 1.6));
+    zoom.width = Math.round(zw); zoom.height = Math.round(zh);
+    zctx.drawImage(cv, sx, sy, zw, zh, 0, 0, zoom.width, zoom.height);
+    document.getElementById('ukubwa_out').textContent = SIZE.value;
+    document.getElementById('upana_out').textContent = Math.round(+UPANA.value * 100) + '%';
+  }
+
+  async function pakiaFonti() {
+    const all = [...f.querySelectorAll('input[name=jina_fonti]')].map(i => i.dataset.css.replace('{px}', '40'));
+    try { await Promise.all(all.map(c => document.fonts.load(c, 'AaBb'))); } catch (e) {}
+    chora();
+  }
+
+  img.onload = () => { tayari = true; pakiaFonti(); };
+  img.src = '{{ harusi.kadi_template.url|escapejs }}';
+
+  f.addEventListener('input', (e) => {
+    if (e.target.name === 'rangi_haraka') { RANGI.value = e.target.value; document.getElementById('rangi_nyingine').value = e.target.value; }
+    if (e.target.id === 'rangi_nyingine') { RANGI.value = e.target.value; f.querySelectorAll('input[name=rangi_haraka]').forEach(r => r.checked = false); }
+    if (e.target.id === 'mfano') f.querySelectorAll('[data-font]').forEach(b => b.textContent = (mfano.value.trim() || 'Jina').slice(0, 16));
+    chora();
+  });
+
+  // Kuburuta jina
+  let buruta = false;
+  function sogeza(ev) {
+    const r = cv.getBoundingClientRect();
+    const px = +SIZE.value * cv.width / 1024;
+    X.value = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)).toFixed(4);
+    // kidole kiwe katikati ya herufi, si kwenye mstari wa chini
+    Y.value = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height + (px * 0.32) / cv.height)).toFixed(4);
+    chora();
+  }
+  cv.addEventListener('pointerdown', (e) => { buruta = true; cv.classList.add('drag'); cv.setPointerCapture(e.pointerId); sogeza(e); });
+  cv.addEventListener('pointermove', (e) => { if (buruta) sogeza(e); });
+  const acha = () => { buruta = false; cv.classList.remove('drag'); };
+  cv.addEventListener('pointerup', acha); cv.addEventListener('pointercancel', acha);
+})();
+</script>
+{% endif %}
+{% endblock %}

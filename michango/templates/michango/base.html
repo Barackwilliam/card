@@ -2,32 +2,66 @@
 <html lang="sw">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d2c74">
 <title>{% block title %}Michango{% endblock %} · {{ harusi.jina|default:"Michango ya Harusi" }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap">
+{% block head %}{% endblock %}
 <link rel="stylesheet" href="{% static 'michango/app.css' %}">
 </head>
 <body>
-{% if user.is_authenticated %}
-<header class="top"><div class="top-in">
-  <a class="brand" href="{% url 'dashibodi' %}">{{ harusi.jina|default:"Michango ya Harusi" }}</a>
-  {% with u=request.resolver_match.url_name %}
-  <nav class="nav" aria-label="Menyu">
-    <a href="{% url 'dashibodi' %}" class="{% if u == 'dashibodi' %}on{% endif %}">Dashibodi</a>
-    <a href="{% url 'wageni' %}" class="{% if u == 'wageni' or u == 'mgeni' or u == 'mgeni_hariri' or u == 'mgeni_mpya' %}on{% endif %}">Wageni</a>
-    <a href="{% url 'michango' %}" class="{% if u == 'michango' or u == 'mchango_mpya' %}on{% endif %}">Michango</a>
-    <a href="{% url 'ingiza' %}" class="{% if u == 'ingiza' %}on{% endif %}">Ingiza orodha</a>
+{% include "michango/_icons.html" %}
+{% with u=request.resolver_match.url_name %}
+<header class="topbar" id="topbar"><div class="topbar-in">
+  {% block back %}{% endblock %}
+  <a class="brand" href="{% url 'dashibodi' %}">
+    <span class="brand-mark"><svg class="ico"><use href="#i-heart"/></svg></span>
+    <span>{% block brand %}{{ harusi.jina|default:"Michango ya Harusi" }}{% endblock %}</span>
+  </a>
+  {% if user.is_authenticated %}
+  <nav class="topnav" aria-label="Menyu">
+    <a href="{% url 'dashibodi' %}" class="{% if u == 'dashibodi' %}on{% endif %}">Nyumbani</a>
+    <a href="{% url 'wageni' %}" class="{% if u in 'wageni mgeni mgeni_hariri mgeni_mpya ingiza' %}on{% endif %}">Wageni</a>
+    <a href="{% url 'michango' %}" class="{% if u in 'michango mchango_mpya' %}on{% endif %}">Michango</a>
     <a href="{% url 'whatsapp' %}" class="{% if u == 'whatsapp' %}on{% endif %}">WhatsApp</a>
-    {% if user.is_staff %}<a href="{% url 'admin:index' %}">Mipangilio</a>{% endif %}
-    <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button class="btn" style="padding:6px 10px">Toka</button></form>
+    <a href="{% url 'mipangilio' %}" class="{% if u in 'mipangilio password_change' %}on{% endif %}">Mipangilio</a>
   </nav>
-  {% endwith %}
+  <a class="back" href="{% url 'mipangilio' %}" aria-label="Mipangilio" style="{% if u == 'mipangilio' %}color:var(--primary){% endif %}" data-mobile-only><svg class="ico"><use href="#i-settings"/></svg></a>
+  {% endif %}
 </div></header>
-{% endif %}
-<main class="wrap">
-  {% if messages %}<div class="msgs" role="status">{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+
+<main class="main">
+  {% if messages %}<div class="toasts" role="status">{% for m in messages %}<div class="toast {{ m.tags }}"><svg class="ico"><use href="#{% if m.tags == 'success' %}i-check{% else %}i-alert{% endif %}"/></svg><span>{{ m }}</span></div>{% endfor %}</div>{% endif %}
   {% block content %}{% endblock %}
 </main>
+
+{% if user.is_authenticated %}
+<nav class="bottomnav" aria-label="Menyu ya chini">
+  <a href="{% url 'dashibodi' %}" class="{% if u == 'dashibodi' %}on{% endif %}"><span class="ico-wrap"><svg class="ico"><use href="#i-home"/></svg></span>Nyumbani</a>
+  <a href="{% url 'wageni' %}" class="{% if u in 'wageni mgeni mgeni_hariri mgeni_mpya ingiza' %}on{% endif %}"><span class="ico-wrap"><svg class="ico"><use href="#i-users"/></svg></span>Wageni</a>
+  <a href="{% url 'mchango_mpya' %}" class="add"><span class="ico-wrap"><svg class="ico"><use href="#i-plus"/></svg></span>Mchango</a>
+  <a href="{% url 'michango' %}" class="{% if u == 'michango' %}on{% endif %}"><span class="ico-wrap"><svg class="ico"><use href="#i-wallet"/></svg></span>Michango</a>
+  <a href="{% url 'whatsapp' %}" class="{% if u == 'whatsapp' %}on{% endif %}"><span class="ico-wrap"><svg class="ico"><use href="#i-chat"/></svg></span>WhatsApp</a>
+</nav>
+{% endif %}
+{% endwith %}
+<script>
+  // Kivuli cha menyu ya juu ukisogeza ukurasa
+  const tb = document.getElementById('topbar');
+  addEventListener('scroll', () => tb.classList.toggle('scrolled', scrollY > 4), { passive: true });
+  // Kitufe kinachohitaji kuthibitishwa: bofya mara ya pili
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-thibitisha]');
+    if (!b || b.dataset.ok === '1') return;
+    e.preventDefault();
+    b.dataset.ok = '1';
+    b.dataset.asili = b.innerHTML;
+    b.textContent = b.dataset.thibitisha;
+    setTimeout(() => { if (b.isConnected) { b.dataset.ok = ''; b.innerHTML = b.dataset.asili; } }, 4000);
+  });
+</script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

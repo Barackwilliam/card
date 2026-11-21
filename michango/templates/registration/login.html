@@ -1,15 +1,16 @@
 {% extends "michango/base.html" %}
 {% block title %}Ingia{% endblock %}
+{% block brand %}Michango ya Harusi{% endblock %}
 {% block content %}
-<div class="panel" style="max-width:420px;margin:40px auto;width:100%">
-  <h1>Ingia</h1>
-  <p class="sub">Mfumo wa michango ya harusi</p>
-  <form method="post" class="stack" style="margin-top:14px">{% csrf_token %}
-    {% if form.errors %}<div class="msg error">Jina la mtumiaji au nenosiri si sahihi.</div>{% endif %}
-    <div><label for="id_username">Jina la mtumiaji</label>{{ form.username }}</div>
-    <div><label for="id_password">Nenosiri</label>{{ form.password }}</div>
+<section class="card" style="max-width:420px;width:100%;margin:6vh auto 0;padding:24px">
+  <h1>Karibu</h1>
+  <p class="muted" style="margin-top:4px">Ingia kusimamia michango ya harusi.</p>
+  <form method="post" class="form" style="margin-top:18px">{% csrf_token %}
+    {% if form.errors %}<div class="toast error"><svg class="ico"><use href="#i-alert"/></svg><span>Jina au nenosiri si sahihi. Jaribu tena.</span></div>{% endif %}
+    <div class="field"><label for="id_username">Jina la kuingia</label><input type="text" name="username" id="id_username" autocomplete="username" autocapitalize="none" required value="{{ form.username.value|default:'' }}"></div>
+    <div class="field"><label for="id_password">Nenosiri</label><input type="password" name="password" id="id_password" autocomplete="current-password" required></div>
     <input type="hidden" name="next" value="{{ next }}">
-    <button class="btn pri">Ingia</button>
+    <button class="btn pri block">Ingia</button>
   </form>
-</div>
+</section>
 {% endblock %}

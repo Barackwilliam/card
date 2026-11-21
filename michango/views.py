@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 
 from . import huduma, whatsapp
 from .anzisha import anzisha_harusi, mahali_pa_picha
-from .forms import AnzishaForm, IngizaForm, MchangoForm, MgeniForm
+from .forms import AnzishaForm, HarusiForm, IngizaForm, KadiForm, MchangoForm, MgeniForm, PichaYaKadiForm, UjumbeForm
 from .ingiza import ingiza_csv
 from .kadi import tengeneza_kadi
 from .models import Harusi, Mchango, Mgeni, Ujumbe, WhatsAppHali, safisha_simu
@@ -28,11 +28,22 @@ VICHUJIO = {
     "wote": ("Wote", lambda qs: qs),
     "hawajatumiwa": ("Hawajatumiwa kadi", lambda qs: qs.filter(kadi_imetumwa__isnull=True)),
     "wametumiwa": ("Wametumiwa kadi", lambda qs: qs.filter(kadi_imetumwa__isnull=False)),
-    "wamechangia": ("Wamechangia", lambda qs: qs.filter(jumla_iliyotolewa__gt=0)),
     "hawajachangia": ("Hawajachangia", lambda qs: qs.filter(jumla_iliyotolewa=0)),
-    "wana_salio": ("Wana salio la ahadi", lambda qs: qs.filter(jumla_iliyotolewa__gt=0, ahadi__gt=F("jumla_iliyotolewa"))),
-    "bila_simu": ("Hawana namba", lambda qs: qs.filter(simu="")),
+    "wamechangia": ("Wamechangia", lambda qs: qs.filter(jumla_iliyotolewa__gt=0)),
+    "wana_salio": ("Wana salio", lambda qs: qs.filter(jumla_iliyotolewa__gt=0, ahadi__gt=F("jumla_iliyotolewa"))),
+    "bila_simu": ("Bila namba", lambda qs: qs.filter(simu="")),
 }
+
+
+def _wageni_wa_kichujio(harusi, kichujio, q):
+    qs = VICHUJIO.get(kichujio, VICHUJIO["wote"])[1](harusi.wageni.na_jumla())
+    if q:
+        simu = safisha_simu(q) if any(c.isdigit() for c in q) else ""
+        cond = Q(jina__icontains=q)
+        if simu:
+            cond |= Q(simu__contains=simu)
+        qs = qs.filter(cond)
+    return qs
 
 
 def harusi_au_setup(view):
@@ -78,15 +89,25 @@ def anzisha(request):
 @harusi_au_setup
 def dashibodi(request, harusi):
     t = huduma.takwimu(harusi)
-    michango = Mchango.objects.filter(mgeni__harusi=harusi).select_related("mgeni")[:8]
-    jumbe = Ujumbe.objects.filter(mgeni__harusi=harusi).select_related("mgeni")[:8]
-    wakubwa = harusi.wageni.na_jumla().filter(jumla_iliyotolewa__gt=0).order_by("-jumla_iliyotolewa")[:5]
+    michango = Mchango.objects.filter(mgeni__harusi=harusi).select_related("mgeni")[:6]
     siku_zilizobaki = (harusi.tarehe_mwisho - timezone.localdate()).days
+    wa = WhatsAppHali.pata() if t["whatsapp_backend"] == "baileys" else None
+    wa_tayari = (wa.hali == "imeunganishwa" and wa.worker_yuko_hewani) if wa else t["whatsapp_backend"] == "cloud"
+    hatua = [
+        {"jina": "Ingiza orodha ya wageni", "imekamilika": t["wageni"] > 0, "url": reverse("ingiza")},
+        {"jina": "Weka namba ya kupokea michango", "imekamilika": not harusi.maelekezo_malipo.startswith("Wasiliana"),
+         "url": reverse("mipangilio") + "?sehemu=harusi"},
+        {"jina": "Chagua muonekano wa jina kwenye kadi", "imekamilika": harusi.wageni.exclude(kadi="").exists() or t["wametumiwa"] > 0,
+         "url": reverse("mipangilio") + "?sehemu=kadi"},
+        {"jina": "Unganisha WhatsApp", "imekamilika": wa_tayari, "url": reverse("whatsapp")},
+        {"jina": "Tuma kadi kwa wageni", "imekamilika": t["wametumiwa"] > 0,
+         "url": reverse("wageni") + "?hali=hawajatumiwa&chagua=1"},
+    ]
     return render(
         request,
         "michango/dashibodi.html",
-        {"harusi": harusi, "t": t, "michango": michango, "jumbe": jumbe, "wakubwa": wakubwa,
-         "siku_zilizobaki": siku_zilizobaki, "wa": WhatsAppHali.pata() if t["whatsapp_backend"] == "baileys" else None},
+        {"harusi": harusi, "t": t, "michango": michango, "siku_zilizobaki": siku_zilizobaki, "wa": wa,
+         "wa_tayari": wa_tayari, "hatua": hatua, "hatua_zimebaki": sum(not h["imekamilika"] for h in hatua)},
     )
 
 
@@ -96,20 +117,15 @@ def wageni(request, harusi):
     if kichujio not in VICHUJIO:
         kichujio = "wote"
     q = request.GET.get("q", "").strip()
-    qs = harusi.wageni.na_jumla()
-    qs = VICHUJIO[kichujio][1](qs)
-    if q:
-        simu = safisha_simu(q) if any(c.isdigit() for c in q) else ""
-        cond = Q(jina__icontains=q)
-        if simu:
-            cond |= Q(simu__contains=simu)
-        qs = qs.filter(cond)
+    qs = _wageni_wa_kichujio(harusi, kichujio, q)
     page = Paginator(qs.order_by("jina"), 50).get_page(request.GET.get("ukurasa"))
-    vichujio = [(k, v[0]) for k, v in VICHUJIO.items()]
+    msingi = harusi.wageni.na_jumla()
+    vichujio = [(k, v[0], v[1](msingi).count()) for k, v in VICHUJIO.items()]
     return render(
         request,
         "michango/wageni.html",
-        {"harusi": harusi, "page": page, "kichujio": kichujio, "q": q, "vichujio": vichujio},
+        {"harusi": harusi, "page": page, "kichujio": kichujio, "q": q, "vichujio": vichujio,
+         "chagua": request.GET.get("chagua") == "1", "jumla": page.paginator.count},
     )
 
 
@@ -120,6 +136,10 @@ def wageni_kitendo(request, harusi):
     ids = request.POST.getlist("chagua")
     kitendo = request.POST.get("kitendo")
     rudi = request.POST.get("rudi") or reverse("wageni")
+    if request.POST.get("wote_wa_kichujio") == "1":
+        # "Chagua wote": wote wanaolingana na kichujio, si ukurasa huu tu
+        ids = list(_wageni_wa_kichujio(harusi, request.POST.get("hali", "wote"), request.POST.get("q", "").strip())
+                   .values_list("pk", flat=True))
     chaguliwa = harusi.wageni.filter(pk__in=ids)
     if not ids:
         messages.warning(request, "Chagua angalau mgeni mmoja kwanza.")
@@ -173,10 +193,14 @@ def wageni_kitendo(request, harusi):
 def mgeni(request, harusi, pk):
     m = get_object_or_404(harusi.wageni.na_jumla(), pk=pk)
     form = MchangoForm(harusi=harusi, mgeni=m, initial={"mgeni": m})
+    historia = [{"aina": "mchango", "muda": c.created, "c": c} for c in m.michango.all()]
+    historia += [{"aina": "ujumbe", "muda": j.created, "j": j} for j in m.jumbe.exclude(hali="jaribio")[:40]]
+    historia.sort(key=lambda x: x["muda"], reverse=True)
     return render(
         request,
         "michango/mgeni.html",
-        {"harusi": harusi, "m": m, "form": form, "michango": m.michango.all(), "jumbe": m.jumbe.all()[:30]},
+        {"harusi": harusi, "m": m, "form": form, "michango": m.michango.all(), "historia": historia,
+         "kiasi_haraka": [10000, 20000, 50000, 100000, 200000]},
     )
 
 
@@ -260,7 +284,12 @@ def mchango_mpya(request, harusi):
             return redirect(request.POST.get("rudi") or reverse("mgeni", args=[ch.mgeni_id]))
     else:
         form = MchangoForm(harusi=harusi, mgeni=mg)
-    return render(request, "michango/mchango_fomu.html", {"harusi": harusi, "form": form, "mg": mg})
+    orodha = [] if mg else list(harusi.wageni.order_by("jina").values("pk", "jina", "simu"))
+    return render(
+        request,
+        "michango/mchango_fomu.html",
+        {"harusi": harusi, "form": form, "mg": mg, "orodha": orodha, "kiasi_haraka": [10000, 20000, 50000, 100000, 200000]},
+    )
 
 
 @require_POST
@@ -328,6 +357,56 @@ def tuma_vikumbusho_sasa(request, harusi):
             f"Vikumbusho vimetumwa: {res.vimetumwa}. Vimerukwa (tayari wamekumbushwa): {res.vimerukwa}. Vimeshindwa: {res.vimeshindwa}.",
         )
     return redirect("dashibodi")
+
+
+@harusi_au_setup
+def mipangilio(request, harusi):
+    """Mipangilio yote kwa lugha rahisi: harusi, muonekano wa kadi, ujumbe."""
+    sehemu = request.GET.get("sehemu") or request.POST.get("sehemu") or "harusi"
+    if sehemu not in ("harusi", "kadi", "ujumbe"):
+        sehemu = "harusi"
+    forms_ = {
+        "harusi": HarusiForm(instance=harusi),
+        "kadi": KadiForm(instance=harusi),
+        "ujumbe": UjumbeForm(instance=harusi),
+    }
+    picha_form = PichaYaKadiForm()
+    if request.method == "POST":
+        if sehemu == "kadi" and request.POST.get("kitendo") == "picha":
+            picha_form = PichaYaKadiForm(request.POST, request.FILES)
+            if picha_form.is_valid():
+                harusi.kadi_template.save(f"kadi-{harusi.pk}.jpg", picha_form.cleaned_data["picha"], save=True)
+                _kadi_zimebadilika(request, harusi)
+                messages.success(request, "Picha ya kadi imebadilishwa. Sasa sogeza jina mahali panapofaa.")
+                return redirect(reverse("mipangilio") + "?sehemu=kadi")
+        else:
+            cls = {"harusi": HarusiForm, "kadi": KadiForm, "ujumbe": UjumbeForm}[sehemu]
+            form = cls(request.POST, instance=harusi)
+            if form.is_valid():
+                form.save()
+                if sehemu == "kadi" and form.cleaned_data.get("tengeneza_upya"):
+                    _kadi_zimebadilika(request, harusi)
+                messages.success(request, "Imehifadhiwa.")
+                return redirect(reverse("mipangilio") + f"?sehemu={sehemu}")
+            forms_[sehemu] = form
+    mfano = harusi.wageni.order_by("-pk").values_list("jina", flat=True).first() or "Neema Mollel"
+    return render(
+        request,
+        "michango/mipangilio.html",
+        {"harusi": harusi, "sehemu": sehemu, "forms": forms_, "picha_form": picha_form,
+         "fonti": [{"faili": f, "jina": j, "css": c} for f, j, c in Harusi.FONTI_ZOTE], "jina_mfano": mfano,
+         "rangi": ["#0d1b4d", "#13235e", "#1f2f7a", "#7a5a12", "#b8892b", "#000000", "#ffffff", "#8b1e3f"]},
+    )
+
+
+def _kadi_zimebadilika(request, harusi):
+    """Muonekano umebadilika: kadi za zamani zitatengenezwa upya zikitumwa au zikifunguliwa."""
+    harusi.wageni.exclude(kadi="").update(kadi="")
+    n = Ujumbe.objects.filter(mgeni__harusi=harusi, aina="kadi", hali="kwenye_foleni").update(
+        hali="imeghairiwa", kosa="Muonekano wa kadi ulibadilishwa; tuma tena"
+    )
+    if n:
+        messages.warning(request, f"Kadi {n} zilizokuwa zinasubiri kutumwa zimesimamishwa ili zisiende na muonekano wa zamani. Zitume tena.")
 
 
 @harusi_au_setup

@@ -1,6 +1,8 @@
+import re
+
 from django import forms
 
-from .models import Mchango, Mgeni, safisha_simu
+from .models import Harusi, Mchango, Mgeni, safisha_simu
 
 
 class MgeniForm(forms.ModelForm):
@@ -61,3 +63,69 @@ class AnzishaForm(forms.Form):
     malipo = forms.CharField(
         label="Maelekezo ya malipo", max_length=300, help_text="Yanaingia kwenye ujumbe wa WhatsApp. Mfano: M-Pesa 0754 xxx xxx (Michael Mchome)"
     )
+
+
+class HarusiForm(forms.ModelForm):
+    class Meta:
+        model = Harusi
+        fields = ["jina", "mwenye_harusi", "familia", "tarehe_mwisho", "maelekezo_malipo"]
+        labels = {
+            "jina": "Jina la shughuli",
+            "mwenye_harusi": "Bwana harusi",
+            "familia": "Familia",
+            "tarehe_mwisho": "Mwisho wa kuchangia",
+            "maelekezo_malipo": "Namba ya kupokea michango",
+        }
+        help_texts = {
+            "jina": "Linaonekana juu ya mfumo.",
+            "mwenye_harusi": "Linaingia kwenye ujumbe wa WhatsApp.",
+            "maelekezo_malipo": "Mfano: M-Pesa 0754 xxx xxx (Michael Mchome). Linaingia kwenye kila ujumbe.",
+        }
+        widgets = {"tarehe_mwisho": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+
+
+class UjumbeForm(forms.ModelForm):
+    class Meta:
+        model = Harusi
+        fields = ["vikumbusho_vimewashwa", "vikumbusho_kwa_siku", "vikumbusho_jumla_max", "shukrani_zimewashwa"]
+        labels = {
+            "vikumbusho_vimewashwa": "Tuma vikumbusho kwa ambao hawajachangia",
+            "vikumbusho_kwa_siku": "Mara ngapi kwa siku",
+            "vikumbusho_jumla_max": "Vikumbusho visizidi (kwa mtu mmoja)",
+            "shukrani_zimewashwa": "Tuma ujumbe wa shukrani mtu akichangia",
+        }
+        help_texts = {
+            "vikumbusho_kwa_siku": "Tunashauri 1. Kumtumia mtu mara nyingi kunaweza kufanya namba ifungiwe.",
+            "vikumbusho_jumla_max": "Baada ya hapo mtu hakumbushwi tena.",
+        }
+        widgets = {
+            "vikumbusho_kwa_siku": forms.Select(choices=[(0, "Hapana"), (1, "Mara 1 (inashauriwa)"), (2, "Mara 2")]),
+            "vikumbusho_jumla_max": forms.Select(choices=[(n, f"Mara {n}") for n in (1, 2, 3, 4, 5, 6)]),
+        }
+
+
+class KadiForm(forms.ModelForm):
+    tengeneza_upya = forms.BooleanField(required=False, initial=True)
+
+    class Meta:
+        model = Harusi
+        fields = ["jina_fonti", "jina_ukubwa", "jina_rangi", "jina_x", "jina_y", "jina_upana_max"]
+
+    def clean_jina_rangi(self):
+        v = self.cleaned_data["jina_rangi"]
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", v or ""):
+            raise forms.ValidationError("Rangi si sahihi.")
+        return v.lower()
+
+    def clean(self):
+        d = super().clean()
+        for f, lo, hi in (("jina_x", 0, 1), ("jina_y", 0, 1), ("jina_upana_max", 0.1, 1)):
+            if f in d and d[f] is not None and not (lo <= d[f] <= hi):
+                self.add_error(f, "Thamani iko nje ya kadi.")
+        if d.get("jina_ukubwa") and not (12 <= d["jina_ukubwa"] <= 140):
+            self.add_error("jina_ukubwa", "Ukubwa uwe kati ya 12 na 140.")
+        return d
+
+
+class PichaYaKadiForm(forms.Form):
+    picha = forms.ImageField(label="Picha mpya ya kadi (bila jina)")

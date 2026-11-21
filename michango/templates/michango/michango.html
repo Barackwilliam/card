@@ -1,36 +1,34 @@
 {% extends "michango/base.html" %}
-{% load humanize %}
+{% load michango_extras %}
 {% block title %}Michango{% endblock %}
 {% block content %}
-<div class="head">
-  <div><h1>Michango</h1><p class="sub">Jumla{% if njia %} (kichujio){% endif %}: <strong>TSh {{ jumla|intcomma }}</strong> · malipo {{ page.paginator.count }}</p></div>
-  <div class="row">
-    <a class="btn" href="?njia={{ njia }}&pakua=csv">Pakua Excel (CSV)</a>
-    <a class="btn gold" href="{% url 'mchango_mpya' %}">+ Ingiza mchango</a>
-  </div>
+<div class="page-head">
+  <div><h1>Michango</h1><p class="muted small">Jumla{% if njia %} ya kichujio hiki{% endif %}: <b class="num" style="color:var(--ink)">TSh {{ jumla|tsh }}</b> · malipo {{ page.paginator.count }}</p></div>
+  <a class="btn sm" href="?njia={{ njia }}&pakua=csv"><svg class="ico"><use href="#i-download"/></svg>Excel</a>
 </div>
-<nav class="tabs" aria-label="Njia za malipo">
+<nav class="filters" aria-label="Njia za malipo">
   <a href="?" class="{% if not njia %}on{% endif %}">Zote</a>
   {% for k, jina in njia_zote %}<a href="?njia={{ k }}" class="{% if njia == k %}on{% endif %}">{{ jina }}</a>{% endfor %}
 </nav>
-<div class="panel scroll">
-  <table>
-    <thead><tr><th>Tarehe</th><th>Jina</th><th>Njia</th><th>Muamala</th><th class="num">Kiasi (TSh)</th></tr></thead>
-    <tbody>
-    {% for c in page %}
-      <tr><td>{{ c.tarehe|date:"d.m.Y" }}</td><td><a href="{% url 'mgeni' c.mgeni_id %}">{{ c.mgeni.jina }}</a></td>
-        <td>{{ c.get_njia_display }}</td><td class="muted">{{ c.kumbukumbu|default:"—" }}</td><td class="num"><strong>{{ c.kiasi|intcomma }}</strong></td></tr>
-    {% empty %}
-      <tr><td colspan="5" class="muted">Hakuna michango bado.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% if page.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if page.has_previous %}<a class="btn" href="?njia={{ njia }}&ukurasa={{ page.previous_page_number }}">‹ Nyuma</a>{% endif %}
-    <span class="muted">Ukurasa {{ page.number }} / {{ page.paginator.num_pages }}</span>
-    {% if page.has_next %}<a class="btn" href="?njia={{ njia }}&ukurasa={{ page.next_page_number }}">Mbele ›</a>{% endif %}
-  </div>
-  {% endif %}
+<div class="card" style="padding-top:4px;padding-bottom:4px">
+  <ul class="list">
+  {% for c in page %}
+    <li><a class="item" href="{% url 'mgeni' c.mgeni_id %}">
+      <span class="avatar">{{ c.mgeni.jina|herufi }}</span>
+      <span class="item-main"><span class="item-title">{{ c.mgeni.jina }}</span><span class="item-sub">{{ c.get_njia_display }} · {{ c.tarehe|date:"d M Y" }}{% if c.kumbukumbu %} · {{ c.kumbukumbu }}{% endif %}</span></span>
+      <span class="amount">{{ c.kiasi|tsh }}</span>
+    </a></li>
+  {% empty %}
+    <li class="empty"><svg class="ico"><use href="#i-wallet"/></svg>Hakuna michango hapa bado.</li>
+  {% endfor %}
+  </ul>
 </div>
+{% if page.paginator.num_pages > 1 %}
+<div class="pager">
+  {% if page.has_previous %}<a class="btn sm" href="?njia={{ njia }}&ukurasa={{ page.previous_page_number }}"><svg class="ico"><use href="#i-back"/></svg></a>{% endif %}
+  <span class="muted small">Ukurasa {{ page.number }} / {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn sm" href="?njia={{ njia }}&ukurasa={{ page.next_page_number }}"><svg class="ico"><use href="#i-next"/></svg></a>{% endif %}
+</div>
+{% endif %}
+<a class="btn gold block" href="{% url 'mchango_mpya' %}"><svg class="ico"><use href="#i-plus"/></svg>Ingiza mchango</a>
 {% endblock %}

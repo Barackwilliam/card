@@ -1,14 +1,97 @@
 {% extends "michango/base.html" %}
+{% load michango_extras %}
 {% block title %}Ingiza mchango{% endblock %}
+{% block back %}<a class="back" href="{% if mg %}{% url 'mgeni' mg.pk %}{% else %}{% url 'dashibodi' %}{% endif %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
+{% block brand %}Ingiza mchango{% endblock %}
 {% block content %}
-<div class="head"><div><h1>Ingiza mchango</h1>{% if mg %}<p class="sub">Kutoka kwa {{ mg.jina }}</p>{% endif %}</div></div>
-<div class="panel">
-  <form method="post" class="stack">{% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form.visible_fields %}{% include "michango/_field.html" %}{% endfor %}
-    {% for h in form.hidden_fields %}{{ h }}{% endfor %}
-    <p class="help">Mgeni hayupo kwenye orodha? <a href="{% url 'mgeni_mpya' %}">Mwongeze kwanza</a>.</p>
-    <div class="row"><button class="btn gold">Hifadhi mchango</button><a class="btn" href="{% url 'michango' %}">Ghairi</a></div>
-  </form>
-</div>
+<form method="post" class="form" id="fomu">{% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <section class="card">
+    <h2 style="margin-bottom:10px">1. Nani amechangia?</h2>
+    {% if mg %}
+      {{ form.mgeni }}
+      <div class="item" style="border:0;padding:0"><span class="avatar">{{ mg.jina|herufi }}</span><span class="item-main"><span class="item-title">{{ mg.jina }}</span><span class="item-sub">{% if mg.simu %}+{{ mg.simu }}{% endif %}</span></span></div>
+    {% else %}
+      <input type="hidden" name="mgeni" id="id_mgeni" value="{{ form.mgeni.value|default:'' }}">
+      <div class="search"><svg class="ico"><use href="#i-search"/></svg>
+        <input type="search" id="tafuta" placeholder="Andika jina la mgeni..." autocomplete="off" aria-label="Tafuta mgeni" aria-controls="matokeo"></div>
+      <div id="aliyechaguliwa" hidden class="item" style="border:0;padding:10px 0 0">
+        <span class="avatar" id="ach-av"></span><span class="item-main"><span class="item-title" id="ach-jina"></span><span class="item-sub" id="ach-simu"></span></span>
+        <button type="button" class="btn sm" id="badilisha">Badilisha</button>
+      </div>
+      <ul class="list" id="matokeo" style="max-height:300px;overflow:auto"></ul>
+      {{ form.mgeni.errors }}
+      <p class="muted small" style="margin-top:8px">Hayupo kwenye orodha? <a href="{% url 'mgeni_mpya' %}">Mwongeze kwanza</a>.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:10px">2. Kiasi gani?</h2>
+    <label for="id_kiasi" class="sr-only">Kiasi (TSh)</label>
+    <input type="number" name="kiasi" id="id_kiasi" class="amount-input" inputmode="numeric" min="1" placeholder="TSh 0" value="{{ form.kiasi.value|default:'' }}" required>
+    {{ form.kiasi.errors }}
+    <div class="quick" style="margin-top:10px">{% for k in kiasi_haraka %}<button type="button" data-kiasi="{{ k }}">{{ k|tsh }}</button>{% endfor %}</div>
+  </section>
+
+  <section class="card form">
+    <div class="field"><span class="label">3. Amelipa kwa</span>
+      <div class="seg">{% for v, l in form.fields.njia.choices %}<label><input type="radio" name="njia" value="{{ v }}" {% if form.njia.value == v or not form.njia.value and forloop.first %}checked{% endif %}><span>{{ l }}</span></label>{% endfor %}</div>
+    </div>
+    <details class="more"><summary>Tarehe au namba ya muamala (si lazima)</summary>
+      <div class="form">
+        <div class="field"><label for="id_tarehe">Tarehe</label>{{ form.tarehe }}</div>
+        <div class="field"><label for="id_kumbukumbu">Namba ya muamala</label>{{ form.kumbukumbu }}</div>
+        <div class="field"><label for="id_maelezo">Maelezo</label>{{ form.maelezo }}</div>
+      </div>
+    </details>
+    <label class="switch"><span>Mtumie ujumbe wa shukrani WhatsApp</span><input type="checkbox" name="tuma_shukrani" checked></label>
+  </section>
+
+  <button class="btn gold block" style="min-height:56px;font-size:17px"><svg class="ico"><use href="#i-check"/></svg>Hifadhi mchango</button>
+</form>
+{% if orodha %}{{ orodha|json_script:"orodha" }}{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-kiasi]').forEach(b => b.addEventListener('click', () => {
+    const i = document.getElementById('id_kiasi'); i.value = b.dataset.kiasi;
+    document.querySelectorAll('[data-kiasi]').forEach(x => x.classList.toggle('on', x === b));
+  }));
+  const data = document.getElementById('orodha');
+  if (data) {
+    const wageni = JSON.parse(data.textContent);
+    const tafuta = document.getElementById('tafuta'), matokeo = document.getElementById('matokeo');
+    const siri = document.getElementById('id_mgeni'), ach = document.getElementById('aliyechaguliwa');
+    const herufi = (j) => j.split(/\s+/).filter(w => !/^(dr|dkt|eng|mr|fr|rm|mzee|mama|dada)\.?$/i.test(w)).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+    function chagua(w) {
+      siri.value = w.pk; tafuta.closest('.search').hidden = true; matokeo.innerHTML = ''; ach.hidden = false;
+      document.getElementById('ach-av').textContent = herufi(w.jina);
+      document.getElementById('ach-jina').textContent = w.jina;
+      document.getElementById('ach-simu').textContent = w.simu ? '+' + w.simu : '';
+      document.getElementById('id_kiasi').focus();
+    }
+    function onyesha() {
+      const q = tafuta.value.trim().toLowerCase();
+      const r = (q ? wageni.filter(w => w.jina.toLowerCase().includes(q) || (w.simu || '').includes(q.replace(/\D/g, '') || '§')) : wageni).slice(0, 30);
+      matokeo.innerHTML = '';
+      for (const w of r) {
+        const li = document.createElement('li'), b = document.createElement('button');
+        b.type = 'button'; b.className = 'item'; b.style.cssText = 'width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;font:inherit;color:inherit;cursor:pointer';
+        const av = document.createElement('span'); av.className = 'avatar'; av.textContent = herufi(w.jina);
+        const main = document.createElement('span'); main.className = 'item-main';
+        const t = document.createElement('span'); t.className = 'item-title'; t.textContent = w.jina;
+        const s = document.createElement('span'); s.className = 'item-sub'; s.textContent = w.simu ? '+' + w.simu : 'Hana namba';
+        main.append(t, s); b.append(av, main); b.addEventListener('click', () => chagua(w)); li.append(b); matokeo.append(li);
+      }
+      if (!r.length) matokeo.innerHTML = '<li class="empty">Hakuna mgeni mwenye jina hilo.</li>';
+    }
+    tafuta.addEventListener('input', onyesha);
+    document.getElementById('badilisha').addEventListener('click', () => { siri.value = ''; ach.hidden = true; tafuta.closest('.search').hidden = false; tafuta.value = ''; onyesha(); tafuta.focus(); });
+    const awali = wageni.find(w => String(w.pk) === siri.value);
+    if (awali) chagua(awali); else onyesha();
+    document.getElementById('fomu').addEventListener('submit', (e) => { if (!siri.value) { e.preventDefault(); tafuta.focus(); tafuta.placeholder = 'Chagua mgeni kwanza'; } });
+  }
+</script>
 {% endblock %}

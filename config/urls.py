@@ -12,6 +12,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("ingia/", auth_views.LoginView.as_view(), name="login"),
     path("toka/", auth_views.LogoutView.as_view(), name="logout"),
+    path("nenosiri/", auth_views.PasswordChangeView.as_view(template_name="michango/nenosiri.html"), name="password_change"),
+    path("nenosiri/tayari/", auth_views.PasswordChangeDoneView.as_view(template_name="michango/nenosiri_tayari.html"),
+         name="password_change_done"),
     path("", include("michango.urls")),
 ]
 

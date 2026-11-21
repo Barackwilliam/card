@@ -1,70 +1,114 @@
 {% extends "michango/base.html" %}
-{% load humanize %}
+{% load michango_extras %}
 {% block title %}Wageni{% endblock %}
 {% block content %}
-<div class="head">
-  <div><h1>Wageni</h1><p class="sub">{{ page.paginator.count }} {% if kichujio != "wote" or q %}wanaolingana na kichujio{% else %}kwa jumla{% endif %}</p></div>
-  <div class="row"><a class="btn" href="{% url 'ingiza' %}">Ingiza orodha (CSV)</a><a class="btn pri" href="{% url 'mgeni_mpya' %}">+ Mgeni</a></div>
+<div class="page-head">
+  <div><h1>Wageni</h1><p class="muted small">{{ jumla }} {% if kichujio != "wote" or q %}wanaolingana{% else %}kwa jumla{% endif %}</p></div>
+  <div class="btn-row" style="flex:0 0 auto">
+    {% if chagua %}
+      <a class="btn sm" href="?hali={{ kichujio }}{% if q %}&q={{ q|urlencode }}{% endif %}">Ghairi</a>
+    {% else %}
+      <a class="btn sm" href="?hali={{ kichujio }}{% if q %}&q={{ q|urlencode }}{% endif %}&chagua=1"><svg class="ico"><use href="#i-check"/></svg>Chagua</a>
+      <a class="btn sm pri" href="{% url 'mgeni_mpya' %}"><svg class="ico"><use href="#i-plus"/></svg>Mgeni</a>
+    {% endif %}
+  </div>
 </div>
 
-<nav class="tabs" aria-label="Vichujio">
-  {% for k, jina in vichujio %}<a href="?hali={{ k }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="{% if k == kichujio %}on{% endif %}">{{ jina }}</a>{% endfor %}
-</nav>
-
-<form method="get" class="row">
-  <input type="hidden" name="hali" value="{{ kichujio }}">
-  <input type="search" name="q" value="{{ q }}" placeholder="Tafuta jina au namba" aria-label="Tafuta" style="max-width:340px">
-  <button class="btn">Tafuta</button>
+<form method="get" class="search" role="search">
+  <input type="hidden" name="hali" value="{{ kichujio }}">{% if chagua %}<input type="hidden" name="chagua" value="1">{% endif %}
+  <svg class="ico"><use href="#i-search"/></svg>
+  <input type="search" name="q" value="{{ q }}" placeholder="Tafuta jina au namba ya simu" aria-label="Tafuta mgeni" enterkeyhint="search">
 </form>
 
-<form method="post" action="{% url 'wageni_kitendo' %}" class="panel" id="orodha">{% csrf_token %}
-  <input type="hidden" name="rudi" value="{{ request.get_full_path }}">
-  <div class="scroll"><table>
-    <thead><tr>
-      <th><input type="checkbox" id="wote" aria-label="Chagua wote"></th>
-      <th>Jina</th><th>Simu</th><th class="num">Ahadi</th><th class="num">Ametoa</th><th>Hali</th>
-    </tr></thead>
-    <tbody>
-    {% for m in page %}
-      <tr>
-        <td><input type="checkbox" name="chagua" value="{{ m.pk }}" aria-label="Chagua {{ m.jina }}"></td>
-        <td><a href="{% url 'mgeni' m.pk %}">{{ m.jina }}</a>{% if m.amejitoa %} <span class="chip c-amejitoa">hataki ujumbe</span>{% endif %}</td>
-        <td class="muted">{{ m.simu|default:"—" }}</td>
-        <td class="num">{% if m.ahadi %}{{ m.ahadi|intcomma }}{% else %}<span class="muted">—</span>{% endif %}</td>
-        <td class="num">{% if m.jumla_iliyotolewa %}<strong>{{ m.jumla_iliyotolewa|intcomma }}</strong>{% else %}<span class="muted">0</span>{% endif %}</td>
-        <td>
-          {% with h=m.hali %}
-          <span class="chip c-{{ h }}">{% if h == "amemaliza" %}Amechangia{% elif h == "sehemu" %}Amelipa sehemu{% elif h == "anasubiriwa" %}Ametumiwa kadi{% else %}Hajatumiwa{% endif %}</span>
-          {% endwith %}
-        </td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="6" class="muted">Hakuna mgeni hapa. <a href="{% url 'ingiza' %}">Ingiza orodha</a> au <a href="{% url 'mgeni_mpya' %}">ongeza mgeni</a>.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table></div>
+<nav class="filters" aria-label="Vichujio">
+  {% for k, jina, n in vichujio %}
+  <a href="?hali={{ k }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if chagua %}&chagua=1{% endif %}" class="{% if k == kichujio %}on{% endif %}">{{ jina }} <b>{{ n }}</b></a>
+  {% endfor %}
+</nav>
 
-  {% if page.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if page.has_previous %}<a class="btn" href="?hali={{ kichujio }}&q={{ q|urlencode }}&ukurasa={{ page.previous_page_number }}">‹ Nyuma</a>{% endif %}
-    <span class="muted">Ukurasa {{ page.number }} / {{ page.paginator.num_pages }}</span>
-    {% if page.has_next %}<a class="btn" href="?hali={{ kichujio }}&q={{ q|urlencode }}&ukurasa={{ page.next_page_number }}">Mbele ›</a>{% endif %}
+<form method="post" action="{% url 'wageni_kitendo' %}" id="orodha">{% csrf_token %}
+  <input type="hidden" name="rudi" value="{{ request.get_full_path }}">
+  <input type="hidden" name="hali" value="{{ kichujio }}"><input type="hidden" name="q" value="{{ q }}">
+  <input type="hidden" name="wote_wa_kichujio" value="0" id="wote_wa_kichujio">
+
+  {% if chagua and page.object_list %}
+  <div class="card" style="padding:10px 16px;margin-bottom:12px">
+    <label class="switch" style="padding:4px 0"><span>Chagua wote {{ jumla }} walio hapa</span><input type="checkbox" id="wote" aria-label="Chagua wote"></label>
   </div>
   {% endif %}
 
-  <div class="row sticky-actions">
-    <span class="muted" id="idadi">Hujachagua mgeni</span>
-    <button class="btn pri" name="kitendo" value="tuma_kadi">Tuma kadi WhatsApp</button>
-    <button class="btn" name="kitendo" value="alama_imetumwa" title="Kama umewatumia kadi mwenyewe">Weka alama: wametumiwa</button>
-    <button class="btn" name="kitendo" value="tengeneza_kadi">Tengeneza kadi upya</button>
+  <div class="card" style="padding-top:4px;padding-bottom:4px">
+    <ul class="list">
+    {% for m in page %}
+      <li>
+        {% if chagua %}<label class="item" style="cursor:pointer">
+          <input type="checkbox" class="checkbox" name="chagua" value="{{ m.pk }}" aria-label="Chagua {{ m.jina }}">
+        {% else %}<a class="item" href="{% url 'mgeni' m.pk %}">{% endif %}
+          <span class="avatar">{{ m.jina|herufi }}</span>
+          <span class="item-main">
+            <span class="item-title">{{ m.jina }}</span>
+            <span class="item-sub">{% if m.simu %}+{{ m.simu }}{% else %}Hana namba{% endif %}{% if m.ahadi %} · ahadi {{ m.ahadi|tsh }}{% endif %}</span>
+          </span>
+          <span class="item-end">
+            {% if m.jumla_iliyotolewa %}<span class="amount">{{ m.jumla_iliyotolewa|tsh }}</span>{% endif %}
+            {% with h=m.hali %}
+            {% if m.amejitoa %}<span class="chip c-amejitoa">Hataki ujumbe</span>
+            {% elif h == "amemaliza" %}<span class="chip c-amemaliza">Amechangia</span>
+            {% elif h == "sehemu" %}<span class="chip c-sehemu">Salio {{ m.salio|tsh }}</span>
+            {% elif h == "anasubiriwa" %}<span class="chip c-anasubiriwa">Ana kadi</span>
+            {% else %}<span class="chip c-hajatumiwa">Hana kadi</span>{% endif %}
+            {% endwith %}
+          </span>
+        {% if chagua %}</label>{% else %}</a>{% endif %}
+      </li>
+    {% empty %}
+      <li class="empty"><svg class="ico"><use href="#i-users"/></svg>
+        {% if q or kichujio != "wote" %}Hakuna mgeni hapa.{% else %}Bado hakuna wageni. <a href="{% url 'ingiza' %}">Ingiza orodha</a> au <a href="{% url 'mgeni_mpya' %}">ongeza mmoja</a>.{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
   </div>
-</form>
 
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pager">
+    {% if page.has_previous %}<a class="btn sm" href="?hali={{ kichujio }}&q={{ q|urlencode }}&ukurasa={{ page.previous_page_number }}{% if chagua %}&chagua=1{% endif %}"><svg class="ico"><use href="#i-back"/></svg></a>{% endif %}
+    <span class="muted small">Ukurasa {{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn sm" href="?hali={{ kichujio }}&q={{ q|urlencode }}&ukurasa={{ page.next_page_number }}{% if chagua %}&chagua=1{% endif %}"><svg class="ico"><use href="#i-next"/></svg></a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if not chagua %}
+  <a class="btn block" href="{% url 'ingiza' %}" style="margin-top:12px"><svg class="ico"><use href="#i-file"/></svg>Ingiza orodha kutoka Excel</a>
+  {% endif %}
+
+  {% if chagua %}
+  <div style="height:150px"></div>
+  <div class="dock"><div class="dock-in">
+    <span class="muted small" id="idadi">Gusa majina kuwachagua</span>
+    <div class="btn-row">
+      <button class="btn pri" name="kitendo" value="tuma_kadi" id="tuma" disabled><svg class="ico"><use href="#i-send"/></svg>Tuma kadi WhatsApp</button>
+      <button class="btn" name="kitendo" value="alama_imetumwa" id="alama" disabled title="Kama uliwatumia kadi wewe mwenyewe">Nimewatumia mwenyewe</button>
+    </div>
+  </div></div>
+  {% endif %}
+</form>
+{% endblock %}
+
+{% block scripts %}
+{% if chagua %}
 <script>
-  const f = document.getElementById('orodha'), all = document.getElementById('wote'), idadi = document.getElementById('idadi');
+  const f = document.getElementById('orodha'), all = document.getElementById('wote'), jumla = {{ jumla }};
+  const idadi = document.getElementById('idadi'), btns = [document.getElementById('tuma'), document.getElementById('alama')];
   const boxes = () => [...f.querySelectorAll('input[name=chagua]')];
-  const count = () => { const n = boxes().filter(b => b.checked).length; idadi.textContent = n ? `Umechagua ${n}` : 'Hujachagua mgeni'; };
-  all.addEventListener('change', () => { boxes().forEach(b => b.checked = all.checked); count(); });
-  f.addEventListener('change', e => { if (e.target.name === 'chagua') count(); });
+  function sasisha() {
+    const woteKichujio = all && all.checked;
+    document.getElementById('wote_wa_kichujio').value = woteKichujio ? '1' : '0';
+    const n = woteKichujio ? jumla : boxes().filter(b => b.checked).length;
+    idadi.textContent = n ? `Umechagua ${n}` : 'Gusa majina kuwachagua';
+    btns.forEach(b => b.disabled = !n);
+  }
+  all && all.addEventListener('change', () => { boxes().forEach(b => b.checked = all.checked); sasisha(); });
+  f.addEventListener('change', e => { if (e.target.name === 'chagua') { if (all && !e.target.checked) all.checked = false; sasisha(); } });
 </script>
+{% endif %}
 {% endblock %}

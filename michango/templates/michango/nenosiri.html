@@ -1,0 +1,13 @@
+{% extends "michango/base.html" %}
+{% block title %}Badilisha nenosiri{% endblock %}
+{% block back %}<a class="back" href="{% url 'mipangilio' %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
+{% block brand %}Badilisha nenosiri{% endblock %}
+{% block content %}
+<section class="card"><form method="post" class="form">{% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="field"><label for="id_old_password">Nenosiri la sasa</label>{{ form.old_password }}{{ form.old_password.errors }}</div>
+  <div class="field"><label for="id_new_password1">Nenosiri jipya</label>{{ form.new_password1 }}{{ form.new_password1.errors }}<div class="help">Angalau herufi 8, lisiwe namba tu wala neno la kawaida.</div></div>
+  <div class="field"><label for="id_new_password2">Rudia nenosiri jipya</label>{{ form.new_password2 }}{{ form.new_password2.errors }}</div>
+  <button class="btn pri block">Badilisha</button>
+</form></section>
+{% endblock %}

@@ -403,3 +403,69 @@ def timezone_now():
     from django.utils import timezone
 
     return timezone.now()
+
+
+class MipangilioTests(Msingi):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user("p", password="nenosiri-zuri-123", is_staff=True))
+
+    def test_sehemu_zote_zinafunguka(self):
+        for s in ("harusi", "kadi", "ujumbe"):
+            r = self.client.get(reverse("mipangilio"), {"sehemu": s})
+            self.assertEqual(r.status_code, 200, s)
+        self.assertContains(self.client.get(reverse("mipangilio"), {"sehemu": "kadi"}), 'name="jina_fonti"')
+        self.assertEqual(self.client.get(reverse("password_change")).status_code, 200)
+
+    def test_kubadili_muonekano_wa_kadi(self):
+        m = self.mgeni("Asha Said", "0711000002", tumwa=False)
+        from .kadi import tengeneza_kadi
+
+        tengeneza_kadi(m)
+        u = Ujumbe.objects.create(mgeni=m, aina="kadi", hali="kwenye_foleni")
+        r = self.client.post(reverse("mipangilio"), {
+            "sehemu": "kadi", "jina_fonti": "Cinzel-Bold.ttf", "jina_ukubwa": 36, "jina_rangi": "#7A5A12",
+            "jina_x": "0.5", "jina_y": "0.46", "jina_upana_max": "0.7", "tengeneza_upya": "on",
+        })
+        self.assertEqual(r.status_code, 302)
+        self.h.refresh_from_db()
+        m.refresh_from_db()
+        u.refresh_from_db()
+        self.assertEqual((self.h.jina_fonti, self.h.jina_ukubwa, self.h.jina_rangi), ("Cinzel-Bold.ttf", 36, "#7a5a12"))
+        self.assertFalse(m.kadi)  # itatengenezwa upya ikitumwa
+        self.assertEqual(u.hali, "imeghairiwa")
+        # kadi mpya inatengenezwa kwa fonti mpya bila kosa
+        tengeneza_kadi(m)
+        self.assertTrue(m.kadi)
+
+    def test_thamani_mbaya_inakataliwa(self):
+        r = self.client.post(reverse("mipangilio"), {
+            "sehemu": "kadi", "jina_fonti": "Cinzel-Bold.ttf", "jina_ukubwa": 36, "jina_rangi": "nyekundu",
+            "jina_x": "2", "jina_y": "0.46", "jina_upana_max": "0.7",
+        })
+        self.assertEqual(r.status_code, 200)
+        self.h.refresh_from_db()
+        self.assertNotEqual(self.h.jina_fonti, "Cinzel-Bold.ttf")
+
+    def test_harusi_na_ujumbe(self):
+        r = self.client.post(reverse("mipangilio"), {
+            "sehemu": "harusi", "jina": "Harusi Mpya", "mwenye_harusi": "Richard", "familia": "",
+            "tarehe_mwisho": "2026-12-05", "maelekezo_malipo": "M-Pesa 0711 000 000",
+        })
+        self.assertEqual(r.status_code, 302)
+        r = self.client.post(reverse("mipangilio"), {"sehemu": "ujumbe", "vikumbusho_kwa_siku": 0, "vikumbusho_jumla_max": 2})
+        self.h.refresh_from_db()
+        self.assertEqual((self.h.jina, self.h.vikumbusho_kwa_siku, self.h.vikumbusho_vimewashwa), ("Harusi Mpya", 0, False))
+
+    def test_fomu_ya_mchango_ina_orodha_ya_kutafuta(self):
+        self.mgeni("Asha Said", "0711000002")
+        r = self.client.get(reverse("mchango_mpya"))
+        self.assertContains(r, 'id="orodha"')
+        self.assertContains(r, "Asha Said")
+
+    def test_chagua_wote_wa_kichujio(self):
+        for i in range(3):
+            self.mgeni(f"M{i}", f"071100001{i}", tumwa=False)
+        r = self.client.post(reverse("wageni_kitendo"), {"kitendo": "alama_imetumwa", "wote_wa_kichujio": "1", "hali": "hawajatumiwa"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.h.wageni.filter(kadi_imetumwa__isnull=True).count(), 0)
