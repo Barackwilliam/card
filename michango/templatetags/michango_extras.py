@@ -25,3 +25,12 @@ def asilimia(a, b):
         return max(0, min(100, round(100 * float(a) / float(b))))
     except (TypeError, ValueError, ZeroDivisionError):
         return 0
+
+
+@register.filter
+def pata(d, k):
+    """Chukua thamani kutoka dict: {{ dict|pata:key }}"""
+    try:
+        return d.get(k, "")
+    except AttributeError:
+        return ""

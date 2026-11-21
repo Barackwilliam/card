@@ -1,5 +1,5 @@
 {% extends "michango/base.html" %}
-{% load l10n %}
+{% load l10n static michango_extras %}
 {% block title %}Mipangilio{% endblock %}
 {% block head %}
 {% if sehemu == "kadi" %}
@@ -93,18 +93,42 @@
 </details>
 
 {% elif sehemu == "ujumbe" %}
-<section class="card">
-  <form method="post" class="form">{% csrf_token %}
-    <input type="hidden" name="sehemu" value="ujumbe">
-    {% for field in forms.ujumbe %}{% include "michango/_field.html" %}{% endfor %}
-    <button class="btn pri block"><svg class="ico"><use href="#i-check"/></svg>Hifadhi</button>
-  </form>
-</section>
-<div class="notice info"><svg class="ico"><use href="#i-bell"/></svg><span>Vikumbusho vinaenda tu kwa waliotumiwa kadi na bado hawajachangia, au wenye salio la ahadi. Mtu akishachangia, havimfikii tena.</span></div>
+<form method="post" class="form">{% csrf_token %}
+  <input type="hidden" name="sehemu" value="ujumbe">
+  {% with f=forms.ujumbe %}
+  {% if f.errors %}<div class="toast error"><svg class="ico"><use href="#i-alert"/></svg><span>Kuna tatizo kwenye ujumbe mmoja. Angalia maelezo mekundu hapo chini.</span></div>{% endif %}
+  <section class="card">
+    <h2 style="margin-bottom:6px">Vikumbusho vya kila siku</h2>
+    {% include "michango/_field.html" with field=f.vikumbusho_vimewashwa %}
+    {% include "michango/_field.html" with field=f.vikumbusho_kwa_siku %}
+    {% include "michango/_field.html" with field=f.vikumbusho_jumla_max %}
+    {% include "michango/_field.html" with field=f.shukrani_zimewashwa %}
+    <p class="muted small">Vikumbusho vinaenda tu kwa waliotumiwa kadi na bado hawajachangia, au wenye salio la ahadi. Mtu akishachangia, havimfikii tena.</p>
+  </section>
+
+  {% if backend == "cloud" %}
+  <div class="notice"><svg class="ico"><use href="#i-alert"/></svg><span>Maandishi haya yanatumika tu WhatsApp ikiwa imeunganishwa kwa namba ya kawaida (Baileys).</span></div>
+  {% endif %}
+
+  {% for s in sehemu_za_ujumbe %}
+  <details class="card more" {% if forloop.counter == 2 %}open{% endif %}>
+    <summary>{{ s.kichwa }}{% if f.initial|pata:s.jina %} <span class="chip c-ok" style="margin-left:6px">Umeandika</span>{% else %} <span class="chip c-hajatumiwa" style="margin-left:6px">Wa kawaida</span>{% endif %}</summary>
+    <p class="muted small" style="margin-bottom:10px">Ukiacha wazi, mfumo utatumia ujumbe wake wa kawaida (wenye maneno tofauti kidogo kwa kila mtu).</p>
+    {% for field in f %}{% if field.name == s.jina %}{{ field.errors }}
+      {% include "michango/_mhariri.html" with jina=s.jina thamani=field.value|default:"" vishika=vishika|pata:s.template kikumbusho=s.kikumbusho mfano_wa_kawaida=mifano_ya_ujumbe|pata:s.template %}
+    {% endif %}{% endfor %}
+    <button type="button" class="btn sm ghost danger" style="margin-top:8px" onclick="this.closest('details').querySelector('.mhariri').mhariri.weka('')">Futa (tumia wa kawaida)</button>
+  </details>
+  {% endfor %}
+  {% endwith %}
+  <button class="btn pri block" style="min-height:54px"><svg class="ico"><use href="#i-check"/></svg>Hifadhi</button>
+</form>
+{{ mfano|json_script:"mfano-vishika" }}
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if sehemu == "ujumbe" %}<script src="{% static 'michango/mhariri.js' %}"></script>{% endif %}
 {% if sehemu == "kadi" %}
 <script>
 (() => {

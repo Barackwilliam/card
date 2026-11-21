@@ -84,10 +84,27 @@ class HarusiForm(forms.ModelForm):
         widgets = {"tarehe_mwisho": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
 
 
+def _kagua_maandishi(maandishi, template):
+    from . import jumbe
+
+    mbaya = jumbe.vishika_visivyojulikana(maandishi, template)
+    if mbaya:
+        ruhusiwa = ", ".join("{" + v + "}" for v in jumbe.VISHIKA[template])
+        raise forms.ValidationError(
+            f"Hivi havijulikani: {', '.join('{' + m + '}' for m in mbaya)}. Unaweza kutumia: {ruhusiwa}."
+        )
+    if len(maandishi) > 3000:
+        raise forms.ValidationError("Ujumbe ni mrefu sana. Ufupishe.")
+    return maandishi.strip()
+
+
 class UjumbeForm(forms.ModelForm):
     class Meta:
         model = Harusi
-        fields = ["vikumbusho_vimewashwa", "vikumbusho_kwa_siku", "vikumbusho_jumla_max", "shukrani_zimewashwa"]
+        fields = [
+            "vikumbusho_vimewashwa", "vikumbusho_kwa_siku", "vikumbusho_jumla_max", "shukrani_zimewashwa",
+            "ujumbe_kadi", "ujumbe_kikumbusho", "ujumbe_salio", "ujumbe_shukrani",
+        ]
         labels = {
             "vikumbusho_vimewashwa": "Tuma vikumbusho kwa ambao hawajachangia",
             "vikumbusho_kwa_siku": "Mara ngapi kwa siku",
@@ -102,6 +119,35 @@ class UjumbeForm(forms.ModelForm):
             "vikumbusho_kwa_siku": forms.Select(choices=[(0, "Hapana"), (1, "Mara 1 (inashauriwa)"), (2, "Mara 2")]),
             "vikumbusho_jumla_max": forms.Select(choices=[(n, f"Mara {n}") for n in (1, 2, 3, 4, 5, 6)]),
         }
+
+    def clean_ujumbe_kadi(self):
+        return _kagua_maandishi(self.cleaned_data["ujumbe_kadi"], "kadi")
+
+    def clean_ujumbe_kikumbusho(self):
+        return _kagua_maandishi(self.cleaned_data["ujumbe_kikumbusho"], "kikumbusho")
+
+    def clean_ujumbe_salio(self):
+        return _kagua_maandishi(self.cleaned_data["ujumbe_salio"], "kikumbusho_salio")
+
+    def clean_ujumbe_shukrani(self):
+        return _kagua_maandishi(self.cleaned_data["ujumbe_shukrani"], "shukrani")
+
+
+class KumbushaForm(forms.Form):
+    KUNDI = [("hawajachangia", "Hawajachangia"), ("wana_salio", "Wenye salio la ahadi")]
+    kundi = forms.ChoiceField(choices=KUNDI, initial="hawajachangia", widget=forms.RadioSelect)
+    maandishi = forms.CharField(widget=forms.Textarea, required=True)
+    hifadhi = forms.BooleanField(required=False, initial=True)
+
+    def clean(self):
+        d = super().clean()
+        if d.get("maandishi") and d.get("kundi"):
+            template = "kikumbusho_salio" if d["kundi"] == "wana_salio" else "kikumbusho"
+            try:
+                d["maandishi"] = _kagua_maandishi(d["maandishi"], template)
+            except forms.ValidationError as e:
+                self.add_error("maandishi", e)
+        return d
 
 
 class KadiForm(forms.ModelForm):

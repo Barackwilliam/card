@@ -38,7 +38,15 @@ def _rekodi(mgeni, aina, m: whatsapp.Matokeo) -> Ujumbe:
     return Ujumbe.objects.create(mgeni=mgeni, aina=aina, hali=hali, wa_id=m.wa_id, kosa=m.kosa)
 
 
-def _tuma(mgeni, aina, template, params, picha_url=None) -> Ujumbe:
+UJUMBE_WA_MTUMIAJI = {
+    "kadi": "ujumbe_kadi",
+    "kikumbusho": "ujumbe_kikumbusho",
+    "kikumbusho_salio": "ujumbe_salio",
+    "shukrani": "ujumbe_shukrani",
+}
+
+
+def _tuma(mgeni, aina, template, params, picha_url=None, maandishi=None) -> Ujumbe:
     """Tuma kwa njia iliyochaguliwa.
 
     Baileys: ujumbe unaandaliwa na kuwekwa kwenye foleni; worker anautuma polepole
@@ -47,7 +55,11 @@ def _tuma(mgeni, aina, template, params, picha_url=None) -> Ujumbe:
     if whatsapp.backend() == "baileys":
         return Ujumbe.objects.create(
             mgeni=mgeni, aina=aina, hali="kwenye_foleni", simu=mgeni.simu,
-            maandishi=jumbe.tunga(template, params), picha_url=picha_url or "",
+            maandishi=jumbe.tunga(
+                template, params,
+                maandishi if maandishi is not None else getattr(mgeni.harusi, UJUMBE_WA_MTUMIAJI[template], ""),
+            ),
+            picha_url=picha_url or "",
         )
     return _rekodi(mgeni, aina, whatsapp.tuma_template(mgeni.simu, template, params, picha_url=picha_url))
 
@@ -82,7 +94,8 @@ def tuma_kadi(mgeni: Mgeni) -> Ujumbe | None:
     return u
 
 
-def tuma_kikumbusho(mgeni: Mgeni) -> Ujumbe | None:
+def tuma_kikumbusho(mgeni: Mgeni, maandishi: str | None = None) -> Ujumbe | None:
+    """maandishi: ujumbe ulioandikwa sasa hivi (ukurasa wa Kumbusha); usipotolewa, wa Mipangilio unatumika."""
     if kwa_nini_hawezi_kutumiwa(mgeni):
         return None
     h = mgeni.harusi
@@ -91,10 +104,12 @@ def tuma_kikumbusho(mgeni: Mgeni) -> Ujumbe | None:
         return _tuma(
             mgeni, "kikumbusho", "kikumbusho_salio",
             [mgeni.jina, tsh(jumla), h.mwenye_harusi, tsh(mgeni.ahadi - jumla), tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
+            maandishi=maandishi,
         )
     return _tuma(
         mgeni, "kikumbusho", "kikumbusho",
         [mgeni.jina, h.mwenye_harusi, tarehe(h.tarehe_mwisho), h.maelekezo_malipo],
+        maandishi=maandishi,
     )
 
 
@@ -117,7 +132,18 @@ class MatokeoVikumbusho:
     makosa: list = field(default_factory=list)
 
 
-def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
+MAKUNDI = {
+    "hawajachangia": lambda qs: qs.filter(jumla_iliyotolewa=0),
+    "wana_salio": lambda qs: qs.filter(jumla_iliyotolewa__gt=0),
+}
+
+
+def wanaostahili(harusi: Harusi, kundi: str | None = None):
+    qs = harusi.wageni.wanaostahili_kikumbusho()
+    return MAKUNDI[kundi](qs) if kundi in MAKUNDI else qs
+
+
+def tuma_vikumbusho(harusi: Harusi, sasa=None, kundi=None, maandishi=None, ruhusu_nje_ya_saa=False) -> MatokeoVikumbusho:
     """Tuma vikumbusho kwa wanaostahili.
 
     Inaweza kuitwa mara nyingi kwa siku (mfano saa 3 asubuhi na saa 12 jioni).
@@ -135,7 +161,9 @@ def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
     if leo_local.date() > harusi.tarehe_mwisho:
         res.sababu = "Muda wa kuchangia umeisha."
         return res
-    if not (SAA_YA_KUANZA <= leo_local.hour < SAA_YA_MWISHO):
+    # Baileys: worker hutuma saa 2 asubuhi - 2 usiku tu, hivyo kuweka foleni usiku ni salama.
+    usiku_sawa = ruhusu_nje_ya_saa and whatsapp.backend() == "baileys"
+    if not usiku_sawa and not (SAA_YA_KUANZA <= leo_local.hour < SAA_YA_MWISHO):
         res.sababu = f"Nje ya saa za kutuma ({SAA_YA_KUANZA}:00-{SAA_YA_MWISHO}:00)."
         return res
 
@@ -144,7 +172,7 @@ def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
     hesabika = ~Q(jumbe__hali__in=Ujumbe.HALI_ZISIZOHESABIKA)
 
     wageni = (
-        harusi.wageni.wanaostahili_kikumbusho()
+        wanaostahili(harusi, kundi)
         .annotate(
             vya_leo=Count(
                 "jumbe",
@@ -173,7 +201,7 @@ def tuma_vikumbusho(harusi: Harusi, sasa=None) -> MatokeoVikumbusho:
         if mwisho and sasa - mwisho.created < pengo:
             res.vimerukwa += 1
             continue
-        u = tuma_kikumbusho(mgeni)
+        u = tuma_kikumbusho(mgeni, maandishi)
         if u and u.hali != "umeshindwa":
             res.vimetumwa += 1
         else:

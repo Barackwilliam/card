@@ -15,9 +15,7 @@
 <section class="actions" aria-label="Vitendo vya haraka">
   <a class="action gold" href="{% url 'mchango_mpya' %}"><span class="circle"><svg class="ico"><use href="#i-plus"/></svg></span>Ingiza mchango</a>
   <a class="action" href="{% url 'wageni' %}?hali=hawajatumiwa&chagua=1"><span class="circle"><svg class="ico"><use href="#i-send"/></svg></span>Tuma kadi</a>
-  <form method="post" action="{% url 'tuma_vikumbusho' %}" style="display:contents">{% csrf_token %}
-    <button class="action" data-thibitisha="Bofya tena kuthibitisha"><span class="circle"><svg class="ico"><use href="#i-bell"/></svg></span>Kumbusha wote</button>
-  </form>
+  <a class="action" href="{% url 'kumbusha' %}"><span class="circle"><svg class="ico"><use href="#i-bell"/></svg></span>Kumbusha</a>
   <a class="action" href="{% url 'mgeni_mpya' %}"><span class="circle"><svg class="ico"><use href="#i-users"/></svg></span>Ongeza mgeni</a>
 </section>
 

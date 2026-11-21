@@ -469,3 +469,76 @@ class MipangilioTests(Msingi):
         r = self.client.post(reverse("wageni_kitendo"), {"kitendo": "alama_imetumwa", "wote_wa_kichujio": "1", "hali": "hawajatumiwa"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(self.h.wageni.filter(kadi_imetumwa__isnull=True).count(), 0)
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class UjumbeWaMtumiajiTests(Msingi):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user("u", password="nenosiri-zuri-123", is_staff=True))
+        self.hajalipa = self.mgeni("Asha Said", "0711000001")
+        self.sehemu = self.mgeni("Juma Ali", "0711000002", ahadi=100_000)
+        Mchango.objects.create(mgeni=self.sehemu, kiasi=40_000)
+
+    def test_ujumbe_wa_mipangilio_unatumika(self):
+        self.h.ujumbe_kikumbusho = "Salaam {jina}, tunakusubiri kabla ya {tarehe}. Malipo: {malipo}"
+        self.h.ujumbe_salio = "Ndugu {jina}, salio lako ni TSh {salio}."
+        self.h.save()
+        with mock.patch("django.utils.timezone.now", return_value=saa(9)):
+            huduma.tuma_vikumbusho(self.h, sasa=saa(9))
+        a = Ujumbe.objects.get(mgeni=self.hajalipa).maandishi
+        j = Ujumbe.objects.get(mgeni=self.sehemu).maandishi
+        self.assertTrue(a.startswith("Salaam Asha Said, tunakusubiri kabla ya 30.11.2026. Malipo: M-Pesa 0754 000 000"))
+        self.assertIn("ACHA", a)  # kinga inaongezwa yenyewe
+        self.assertTrue(j.startswith("Ndugu Juma Ali, salio lako ni TSh 60,000."))
+
+    def test_matoleo_yanapokezana(self):
+        from . import jumbe
+
+        t = "Habari {jina} A\n---\nSalaam {jina} B\n---\nShikamoo {jina} C"
+        matokeo = {jumbe.tunga("kikumbusho", ["X", "R", "1.1", "M"], t).split("\n")[0] for _ in range(60)}
+        self.assertEqual(matokeo, {"Habari X A", "Salaam X B", "Shikamoo X C"})
+
+    def test_ukurasa_wa_kumbusha(self):
+        r = self.client.get(reverse("kumbusha"))
+        self.assertContains(r, "Hawajachangia")
+        self.assertContains(r, 'name="maandishi"')
+        with mock.patch("django.utils.timezone.now", return_value=saa(10)):
+            r = self.client.post(reverse("kumbusha"), {
+                "kundi": "hawajachangia", "maandishi": "Habari {jina}, karibu uchangie. Jibu ACHA kusitisha.", "hifadhi": "on",
+            })
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Ujumbe.objects.filter(aina="kikumbusho").count(), 1)  # kundi moja tu
+        u = Ujumbe.objects.get(mgeni=self.hajalipa)
+        self.assertEqual(u.maandishi, "Habari Asha Said, karibu uchangie. Jibu ACHA kusitisha.")
+        self.h.refresh_from_db()
+        self.assertEqual(self.h.ujumbe_kikumbusho, "Habari {jina}, karibu uchangie. Jibu ACHA kusitisha.")
+
+    def test_usiku_unawekwa_foleni(self):
+        with mock.patch("django.utils.timezone.now", return_value=saa(22)):
+            r = self.client.post(reverse("kumbusha"), {"kundi": "wana_salio", "maandishi": "Salio {salio}"})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Ujumbe.objects.get(mgeni=self.sehemu).hali, "kwenye_foleni")
+
+    def test_kishika_kisichojulikana_kinakataliwa(self):
+        r = self.client.post(reverse("kumbusha"), {"kundi": "hawajachangia", "maandishi": "Habari {jina}, salio {salio}"})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Hivi havijulikani")
+        self.assertFalse(Ujumbe.objects.exists())
+
+    def test_mipangilio_ya_ujumbe(self):
+        r = self.client.get(reverse("mipangilio"), {"sehemu": "ujumbe"})
+        self.assertContains(r, "Kikumbusho: hawajachangia")
+        r = self.client.post(reverse("mipangilio"), {
+            "sehemu": "ujumbe", "vikumbusho_vimewashwa": "on", "vikumbusho_kwa_siku": 1, "vikumbusho_jumla_max": 4,
+            "ujumbe_kadi": "Karibu {jina}", "ujumbe_kikumbusho": "", "ujumbe_salio": "", "ujumbe_shukrani": "Asante {jina} kwa {kiasi}",
+        })
+        self.assertEqual(r.status_code, 302)
+        self.h.refresh_from_db()
+        self.assertEqual(self.h.ujumbe_kadi, "Karibu {jina}")
+        m = self.mgeni("Neema", "0711000009", tumwa=False)
+        self.assertEqual(huduma.tuma_kadi(m).maandishi, "Karibu Neema")
+        r = self.client.post(reverse("mipangilio"), {
+            "sehemu": "ujumbe", "vikumbusho_kwa_siku": 1, "vikumbusho_jumla_max": 4, "ujumbe_kadi": "Karibu {salio}",
+        })
+        self.assertContains(r, "Hivi havijulikani")

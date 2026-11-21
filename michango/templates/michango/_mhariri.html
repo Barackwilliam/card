@@ -1,0 +1,19 @@
+{% load michango_extras %}{# Mhariri wa ujumbe. Vigezo: jina, thamani, vishika (orodha), kikumbusho (bool), mfano_wa_kawaida #}
+<div class="mhariri" data-kikumbusho="{% if kikumbusho %}1{% else %}0{% endif %}" {% if id %}id="{{ id }}"{% endif %}>
+  <textarea name="{{ jina }}" data-thamani rows="6" aria-label="Ujumbe">{{ thamani }}</textarea>
+  <div data-matoleo class="form" style="gap:12px"></div>
+  <div class="field" style="margin-top:10px">
+    <span class="label small muted" style="font-weight:600">Gusa kuongeza kwenye ujumbe:</span>
+    <div class="quick" style="justify-content:flex-start">
+      {% for k in vishika %}<button type="button" data-kishika="{{ k }}">{{ maelezo_vishika|pata:k }}</button>{% endfor %}
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:10px">
+    <button type="button" class="btn sm" data-ongeza><svg class="ico"><use href="#i-plus"/></svg>Ongeza toleo jingine</button>
+    {% if mfano_wa_kawaida %}<button type="button" class="btn sm ghost" data-rudisha="{{ mfano_wa_kawaida }}">Tumia mfano</button>{% endif %}
+  </div>
+  <div class="wa-preview" style="margin-top:14px">
+    <span class="small muted" style="font-weight:600">Utakavyoonekana WhatsApp:</span>
+    <div class="wa-chat"><div class="wa-bubble" data-kiputo></div></div>
+  </div>
+</div>

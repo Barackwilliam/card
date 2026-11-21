@@ -1,0 +1,49 @@
+{% extends "michango/base.html" %}
+{% load static michango_extras %}
+{% block title %}Kumbusha{% endblock %}
+{% block back %}<a class="back" href="{% url 'dashibodi' %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
+{% block brand %}Kumbusha wageni{% endblock %}
+{% block content %}
+{% if backend == "cloud" %}
+<div class="notice"><svg class="ico"><use href="#i-alert"/></svg><span>Mfumo unatumia WhatsApp ya Meta yenye ujumbe uliokwisha idhinishwa, kwa hiyo maandishi yako hayatatumika.</span></div>
+{% endif %}
+
+<form method="post" class="form" id="fomu-kumbusha">{% csrf_token %}
+  <section class="card">
+    <h2 style="margin-bottom:10px">1. Uwakumbushe akina nani?</h2>
+    <div class="form" style="gap:10px">
+      {% for v, l in form.fields.kundi.choices %}
+      <label class="kundi">
+        <input type="radio" name="kundi" value="{{ v }}" {% if kundi == v %}checked{% endif %}>
+        <span><b>{{ l }}</b><small>{% if v == "hawajachangia" %}Wametumiwa kadi lakini bado hawajatoa chochote{% else %}Wametoa sehemu ya ahadi yao{% endif %}</small></span>
+        <span class="chip c-info">{{ idadi|pata:v }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:4px">2. Andika ujumbe wako</h2>
+    <p class="muted small" style="margin-bottom:12px">Gusa vitufe vya chini kuweka jina la mtu, salio au tarehe. Mfumo utajaza kwa kila mtu. Ukiandika matoleo 2 au 3, mfumo utayapokezana; hii inalinda namba yako isifungiwe.</p>
+    {{ form.maandishi.errors }}
+    {% with v=kundi %}
+    {% include "michango/_mhariri.html" with id="mhariri" jina="maandishi" thamani=form.maandishi.value vishika=vishika_vya_kundi|pata:v kikumbusho=True %}
+    {% endwith %}
+    <label class="switch"><span>Tumia ujumbe huu pia kwa vikumbusho vya kila siku</span><input type="checkbox" name="hifadhi" checked></label>
+  </section>
+
+  <div class="notice info"><svg class="ico"><use href="#i-bell"/></svg><span>Waliokwisha kumbushwa leo, au walioomba wasitumiwe, wataachwa. Jumbe zinatumwa polepole, moja kila dakika 1 hivi.</span></div>
+  <button class="btn gold block" style="min-height:56px;font-size:17px" data-thibitisha="Gusa tena kutuma"><svg class="ico"><use href="#i-send"/></svg>Tuma vikumbusho</button>
+</form>
+{{ mfano|json_script:"mfano-vishika" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'michango/mhariri.js' %}"></script>
+<script>
+  // Kubadili kundi kunabadili ujumbe na vitufe vya vishika-nafasi (bila kupakia ukurasa upya)
+  document.querySelectorAll('input[name=kundi]').forEach(r => r.addEventListener('change', () => {
+    const u = new URL(location.href); u.searchParams.set('kundi', r.value); location.href = u;
+  }));
+</script>
+{% endblock %}

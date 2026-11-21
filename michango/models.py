@@ -68,6 +68,13 @@ class Harusi(models.Model):
     )
     shukrani_zimewashwa = models.BooleanField("Tuma shukrani mchango ukipokelewa", default=True)
 
+    # Maandishi ya ujumbe yaliyoandikwa na mtumiaji (Baileys). Yakiwa wazi, mfumo
+    # unatumia maandishi yake ya kawaida. Matoleo kadhaa yanatenganishwa na mstari "---".
+    ujumbe_kadi = models.TextField("Ujumbe wa kadi", blank=True, default="")
+    ujumbe_kikumbusho = models.TextField("Kikumbusho (hawajachangia)", blank=True, default="")
+    ujumbe_salio = models.TextField("Kikumbusho (wenye salio la ahadi)", blank=True, default="")
+    ujumbe_shukrani = models.TextField("Ujumbe wa shukrani", blank=True, default="")
+
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

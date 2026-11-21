@@ -15,9 +15,11 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from . import huduma, whatsapp
+from . import huduma, jumbe, whatsapp
 from .anzisha import anzisha_harusi, mahali_pa_picha
-from .forms import AnzishaForm, HarusiForm, IngizaForm, KadiForm, MchangoForm, MgeniForm, PichaYaKadiForm, UjumbeForm
+from .forms import (
+    AnzishaForm, HarusiForm, IngizaForm, KadiForm, KumbushaForm, MchangoForm, MgeniForm, PichaYaKadiForm, UjumbeForm,
+)
 from .ingiza import ingiza_csv
 from .kadi import tengeneza_kadi
 from .models import Harusi, Mchango, Mgeni, Ujumbe, WhatsAppHali, safisha_simu
@@ -359,6 +361,56 @@ def tuma_vikumbusho_sasa(request, harusi):
     return redirect("dashibodi")
 
 
+def _mfano_wa_vishika(harusi):
+    """Thamani za mfano za kuonyesha ujumbe utakavyoonekana (onyesho la WhatsApp)."""
+    jina = harusi.wageni.order_by("-pk").values_list("jina", flat=True).first() or "Neema Mollel"
+    return {
+        "jina": jina, "bwana_harusi": harusi.mwenye_harusi, "tarehe": huduma.tarehe(harusi.tarehe_mwisho),
+        "malipo": harusi.maelekezo_malipo, "salio": "60,000", "ametoa": "40,000", "kiasi": "50,000", "jumla": "90,000",
+    }
+
+
+@harusi_au_setup
+def kumbusha(request, harusi):
+    """Andika ujumbe wa kikumbusho na uutume kwa kundi la wageni."""
+    kundi = request.POST.get("kundi") or request.GET.get("kundi") or "hawajachangia"
+    if kundi not in dict(KumbushaForm.KUNDI):
+        kundi = "hawajachangia"
+    hifadhiwa = {"hawajachangia": harusi.ujumbe_kikumbusho, "wana_salio": harusi.ujumbe_salio}
+    mifano = {"hawajachangia": jumbe.MFANO["kikumbusho"], "wana_salio": jumbe.MFANO["kikumbusho_salio"]}
+    if request.method == "POST":
+        form = KumbushaForm(request.POST)
+        if form.is_valid():
+            d = form.cleaned_data
+            if d["hifadhi"]:
+                setattr(harusi, "ujumbe_salio" if d["kundi"] == "wana_salio" else "ujumbe_kikumbusho", d["maandishi"])
+                harusi.save(update_fields=["ujumbe_salio", "ujumbe_kikumbusho"])
+            res = huduma.tuma_vikumbusho(harusi, kundi=d["kundi"], maandishi=d["maandishi"], ruhusu_nje_ya_saa=True)
+            if res.sababu:
+                messages.warning(request, f"Hakuna kikumbusho kilichotumwa: {res.sababu}")
+                return redirect(reverse("kumbusha") + f"?kundi={d['kundi']}")
+            if res.vimetumwa:
+                saa = timezone.localtime().hour
+                lini = " Vitaanza kutumwa saa 2 asubuhi." if not (huduma.SAA_YA_KUANZA <= saa < huduma.SAA_YA_MWISHO) else ""
+                messages.success(request, f"Vikumbusho {res.vimetumwa} vimeandaliwa na vinatumwa polepole.{lini}")
+            if res.vimerukwa:
+                messages.info(request, f"Watu {res.vimerukwa} wamerukwa kwa sababu tayari wamekumbushwa leo au wamefikia kikomo.")
+            if not res.vimetumwa and not res.vimerukwa:
+                messages.info(request, "Hakuna mtu wa kukumbusha kwenye kundi hili kwa sasa.")
+            return redirect("whatsapp" if whatsapp.backend() == "baileys" else "dashibodi")
+    else:
+        form = KumbushaForm(initial={"kundi": kundi, "maandishi": hifadhiwa[kundi] or mifano[kundi]})
+    idadi = {k: huduma.wanaostahili(harusi, k).count() for k, _ in KumbushaForm.KUNDI}
+    return render(
+        request,
+        "michango/kumbusha.html",
+        {"harusi": harusi, "form": form, "kundi": kundi, "idadi": idadi, "backend": whatsapp.backend(),
+         "maandishi_ya_kundi": {k: hifadhiwa[k] or mifano[k] for k in hifadhiwa},
+         "vishika_vya_kundi": {"hawajachangia": jumbe.VISHIKA["kikumbusho"], "wana_salio": jumbe.VISHIKA["kikumbusho_salio"]},
+         "maelezo_vishika": jumbe.MAELEZO_YA_VISHIKA, "mfano": _mfano_wa_vishika(harusi)},
+    )
+
+
 @harusi_au_setup
 def mipangilio(request, harusi):
     """Mipangilio yote kwa lugha rahisi: harusi, muonekano wa kadi, ujumbe."""
@@ -395,7 +447,15 @@ def mipangilio(request, harusi):
         "michango/mipangilio.html",
         {"harusi": harusi, "sehemu": sehemu, "forms": forms_, "picha_form": picha_form,
          "fonti": [{"faili": f, "jina": j, "css": c} for f, j, c in Harusi.FONTI_ZOTE], "jina_mfano": mfano,
-         "rangi": ["#0d1b4d", "#13235e", "#1f2f7a", "#7a5a12", "#b8892b", "#000000", "#ffffff", "#8b1e3f"]},
+         "rangi": ["#0d1b4d", "#13235e", "#1f2f7a", "#7a5a12", "#b8892b", "#000000", "#ffffff", "#8b1e3f"],
+         "backend": whatsapp.backend(), "mfano": _mfano_wa_vishika(harusi), "maelezo_vishika": jumbe.MAELEZO_YA_VISHIKA,
+         "sehemu_za_ujumbe": [
+             {"jina": "ujumbe_kadi", "kichwa": "Ujumbe unaoambatana na kadi", "template": "kadi", "kikumbusho": False},
+             {"jina": "ujumbe_kikumbusho", "kichwa": "Kikumbusho: hawajachangia", "template": "kikumbusho", "kikumbusho": True},
+             {"jina": "ujumbe_salio", "kichwa": "Kikumbusho: wenye salio la ahadi", "template": "kikumbusho_salio", "kikumbusho": True},
+             {"jina": "ujumbe_shukrani", "kichwa": "Shukrani mtu akichangia", "template": "shukrani", "kikumbusho": False},
+         ],
+         "vishika": jumbe.VISHIKA, "mifano_ya_ujumbe": jumbe.MFANO},
     )
 
 
