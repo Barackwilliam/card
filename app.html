@@ -119,7 +119,7 @@ input[type=range]{flex:1;accent-color:var(--gold)}
 <script>
 // Mipangilio ya kila kadi. x,y ni sehemu ya upana/urefu wa picha (0..1); y ni mstari wa chini wa herufi.
 const PRESETS = {
-  bluu: {src:"templates/bluu.jpg", x:598/1024, y:646/1536, size:54, maxW:560/1024, font:"Great Vibes", color:"#0d1b4d"},
+  bluu: {src:"templates/bluu.jpg", x:511/1024, y:646/1536, size:56, maxW:740/1024, font:"Great Vibes", color:"#0d1b4d"},
   maua: {src:"templates/maua.jpg", x:550/1046, y:517/1504, size:38, maxW:560/1046, font:"Montserrat|800", color:"#0b3d91"},
 };
 const SAMPLE = ["Bw. & Bi. John Mushi","Dkt. Neema Mollel","Mch. Peter Kimaro","Eng. Asha Said","Bi. Rehema Juma"].join("\n");
@@ -180,7 +180,7 @@ async function selectTpl(id){
   syncControls(); render(); save();
 }
 
-function save(){ store.set("kadi.names", $("#names").value); store.set("kadi.cfg", JSON.stringify({tpl:state.tpl, bluu:state.cfg.bluu, maua:state.cfg.maua})); }
+function save(){ store.set("kadi.names", $("#names").value); store.set("kadi.cfg.v2", JSON.stringify({tpl:state.tpl, bluu:state.cfg.bluu, maua:state.cfg.maua})); }
 
 // Kuhifadhi faili: ndani ya Claude tunatumia uwezo wa "downloads"; nje tunatumia kiungo cha kawaida
 let dl;
@@ -277,7 +277,7 @@ cv.addEventListener("pointerup", ()=>{ dragging=false; cv.classList.remove("drag
 (function init(){
   state.cfg = {bluu:{...PRESETS.bluu}, maua:{...PRESETS.maua}};
   try{
-    const saved = JSON.parse(store.get("kadi.cfg")||"null");
+    const saved = JSON.parse(store.get("kadi.cfg.v2")||"null");
     if(saved){ ["bluu","maua"].forEach(k=>{ if(saved[k]) Object.assign(state.cfg[k], saved[k], {src:PRESETS[k].src}); }); if(saved.tpl in PRESETS) state.tpl = saved.tpl; }
   }catch{}
   $("#names").value = store.get("kadi.names") ?? SAMPLE;
