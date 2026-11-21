@@ -1,12 +1,34 @@
 {% extends "michango/base.html" %}
 {% block title %}Anzisha{% endblock %}
 {% block content %}
-<div class="panel">
-  <h1>Bado hakuna harusi</h1>
-  <p>Anzisha harusi kwanza: jina, bwana harusi, tarehe ya mwisho, maelekezo ya malipo na picha ya kadi.</p>
-  <div class="row">
-    {% if user.is_staff %}<a class="btn pri" href="{% url 'admin:michango_harusi_add' %}">Anzisha harusi</a>{% endif %}
-  </div>
-  <p class="help">Au kwenye terminal: <code>python manage.py anzisha_harusi --malipo "M-Pesa 0754 000 000"</code></p>
+<div class="head"><div><h1>Anzisha harusi</h1><p class="sub">Hatua ya mwisho kabla ya kuanza: taarifa za harusi. Kadi ya bluu itatumika; unaweza kuibadilisha baadaye kwenye Mipangilio.</p></div></div>
+
+{% if mahali_pa_picha == "folda" and not debug %}
+<div class="msg error">Supabase Storage haijaunganishwa: <code>SUPABASE_S3_ACCESS_KEY_ID</code> haijawekwa kwenye Render. Kadi zitahifadhiwa kwenye folda ya muda na zitapotea server ikizimwa. Weka vigezo vya SUPABASE_* kisha u-deploy upya.</div>
+{% endif %}
+
+{% if kosa %}
+<div class="msg error">
+  <strong>Imeshindwa kuanzisha harusi.</strong><br>
+  <code style="white-space:pre-wrap;word-break:break-word">{{ kosa }}</code>
+  <p style="margin:8px 0 0;font-weight:400">
+    {% if "InvalidAccessKeyId" in kosa or "SignatureDoesNotMatch" in kosa %}Funguo za S3 za Supabase si sahihi. Angalia SUPABASE_S3_ACCESS_KEY_ID na SUPABASE_S3_SECRET_ACCESS_KEY.
+    {% elif "NoSuchBucket" in kosa %}Bucket haipo. Tengeneza bucket inayoitwa "kadi" (herufi ndogo) kwenye Supabase Storage.
+    {% elif "region" in kosa|lower or "AuthorizationHeaderMalformed" in kosa %}Region si sahihi. Angalia SUPABASE_S3_REGION kwenye ukurasa wa S3 wa Supabase.
+    {% elif "EndpointConnectionError" in kosa or "Could not connect" in kosa %}Haifiki Supabase. Angalia SUPABASE_URL (mfano https://abcd.supabase.co, bila / mwishoni).
+    {% else %}Nakili kosa hili umtumie anayekusaidia.{% endif %}
+  </p>
 </div>
+{% endif %}
+
+{% if user.is_staff %}
+<div class="panel">
+  <form method="post" class="stack">{% csrf_token %}
+    {% for field in form %}{% include "michango/_field.html" %}{% endfor %}
+    <div><button class="btn pri">Anzisha harusi</button></div>
+  </form>
+</div>
+{% else %}
+<div class="panel"><p>Msimamizi wa mfumo anahitaji kuanzisha harusi kwanza.</p></div>
+{% endif %}
 {% endblock %}

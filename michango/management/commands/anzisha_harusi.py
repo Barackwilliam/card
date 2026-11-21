@@ -1,13 +1,9 @@
 from datetime import date
-from pathlib import Path
 
-from django.conf import settings
-from django.core.files import File
 from django.core.management.base import BaseCommand
 
+from michango.anzisha import anzisha_harusi
 from michango.models import Harusi
-
-KADI_YA_BLUU = Path(settings.BASE_DIR) / "templates" / "bluu.jpg"
 
 
 class Command(BaseCommand):
@@ -24,16 +20,13 @@ class Command(BaseCommand):
         if Harusi.objects.exists():
             self.stdout.write("Tayari kuna harusi. Ibadilishe kwenye /admin/.")
             return
-        h = Harusi(
+        h = anzisha_harusi(
             jina=o["jina"],
             mwenye_harusi=o["mwenye_harusi"],
             familia=o["familia"],
             tarehe_mwisho=date.fromisoformat(o["tarehe_mwisho"]),
-            maelekezo_malipo=o["malipo"] or "Wasiliana na familia kwa maelekezo ya malipo",
+            malipo=o["malipo"] or "Wasiliana na familia kwa maelekezo ya malipo",
         )
-        with KADI_YA_BLUU.open("rb") as f:
-            h.kadi_template.save("kadi-bluu.jpg", File(f), save=False)
-        h.save()
         self.stdout.write(self.style.SUCCESS(f"Harusi '{h}' imeanzishwa."))
         if not o["malipo"]:
             self.stdout.write(self.style.WARNING("Kumbuka kuweka maelekezo ya malipo kwenye /admin/ kabla ya kutuma ujumbe."))

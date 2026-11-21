@@ -16,7 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from . import huduma, whatsapp
-from .forms import IngizaForm, MchangoForm, MgeniForm
+from .anzisha import anzisha_harusi, mahali_pa_picha
+from .forms import AnzishaForm, IngizaForm, MchangoForm, MgeniForm
 from .ingiza import ingiza_csv
 from .kadi import tengeneza_kadi
 from .models import Harusi, Mchango, Mgeni, Ujumbe, safisha_simu
@@ -40,11 +41,38 @@ def harusi_au_setup(view):
     def wrapper(request, *args, **kwargs):
         harusi = Harusi.ya_sasa()
         if not harusi:
-            return render(request, "michango/hakuna_harusi.html")
+            return anzisha(request)
         return view(request, harusi, *args, **kwargs)
 
     wrapper.__name__ = view.__name__
     return login_required(wrapper)
+
+
+def anzisha(request):
+    """Ukurasa wa kuanzisha harusi ya kwanza (unaonekana mpaka harusi iwepo)."""
+    kosa = ""
+    if request.method == "POST" and request.user.is_staff and not Harusi.objects.exists():
+        form = AnzishaForm(request.POST)
+        if form.is_valid():
+            d = form.cleaned_data
+            try:
+                anzisha_harusi(
+                    jina=d["jina"], mwenye_harusi=d["mwenye_harusi"], familia=d["familia"],
+                    tarehe_mwisho=d["tarehe_mwisho"], malipo=d["malipo"],
+                )
+            except Exception as e:  # onyesha kosa halisi (mfano la Supabase) badala ya kulificha kwenye logs
+                log.exception("Kuanzisha harusi kumeshindwa")
+                kosa = f"{type(e).__name__}: {e}"
+            else:
+                messages.success(request, "Harusi imeanzishwa.")
+                return redirect("dashibodi")
+    else:
+        form = AnzishaForm()
+    return render(
+        request,
+        "michango/hakuna_harusi.html",
+        {"form": form, "kosa": kosa, "mahali_pa_picha": mahali_pa_picha(), "debug": settings.DEBUG},
+    )
 
 
 @harusi_au_setup

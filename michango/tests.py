@@ -289,3 +289,28 @@ class StorageTests(TestCase):
 
         st = SupabaseStorage(bucket_name="kadi", access_key="k", secret_key="s", endpoint_url="https://abc.supabase.co/storage/v1/s3")
         self.assertEqual(st.url("kadi/h1/1-a b.jpg"), "https://abc.supabase.co/storage/v1/object/public/kadi/kadi/h1/1-a%20b.jpg")
+
+
+@override_settings(MEDIA_ROOT=TMP_MEDIA)
+class AnzishaTests(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create_user("m", password="nenosiri-zuri-123", is_staff=True))
+        self.data = {"jina": "Harusi ya Majaribio", "mwenye_harusi": "Bwana Harusi", "familia": "",
+                     "tarehe_mwisho": "2026-11-30", "malipo": "M-Pesa 0711 000 000"}
+
+    def test_fomu_inaonekana_na_inaanzisha(self):
+        r = self.client.get(reverse("wageni"))
+        self.assertContains(r, "Anzisha harusi")
+        r = self.client.post(reverse("dashibodi"), self.data)
+        self.assertRedirects(r, reverse("dashibodi"))
+        h = Harusi.objects.get()
+        self.assertEqual(h.mwenye_harusi, "Bwana Harusi")
+        self.assertTrue(h.kadi_template.name)
+
+    def test_kosa_la_storage_linaonyeshwa(self):
+        with mock.patch("django.db.models.fields.files.FieldFile.save", side_effect=RuntimeError("NoSuchBucket: kadi")):
+            r = self.client.post(reverse("dashibodi"), self.data)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "NoSuchBucket")
+        self.assertContains(r, "Tengeneza bucket")
+        self.assertFalse(Harusi.objects.exists())

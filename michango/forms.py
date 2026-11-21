@@ -51,3 +51,13 @@ class IngizaForm(forms.Form):
         label="Faili la CSV",
         help_text="Safu: jina, simu, ahadi, ametoa, maelezo (ni jina tu la lazima). Unaweza kuhifadhi kutoka Excel kama CSV.",
     )
+
+
+class AnzishaForm(forms.Form):
+    jina = forms.CharField(label="Jina la shughuli", initial="Harusi ya Richard Ngelula", max_length=200)
+    mwenye_harusi = forms.CharField(label="Bwana harusi", initial="Richard Ngelula", max_length=120)
+    familia = forms.CharField(label="Familia", initial="Familia ya Bw. & Bi. Michael Mchome wa Korogwe", max_length=200, required=False)
+    tarehe_mwisho = forms.DateField(label="Mwisho wa kuchangia", initial="2026-11-30", widget=forms.DateInput(attrs={"type": "date"}))
+    malipo = forms.CharField(
+        label="Maelekezo ya malipo", max_length=300, help_text="Yanaingia kwenye ujumbe wa WhatsApp. Mfano: M-Pesa 0754 xxx xxx (Michael Mchome)"
+    )

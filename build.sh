@@ -6,5 +6,6 @@ python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 python manage.py hakikisha_msimamizi
 if [ -n "$HARUSI_MALIPO" ]; then
-  python manage.py anzisha_harusi --malipo "$HARUSI_MALIPO"
+  # Isizuie deploy ikishindwa: ukurasa wa "Anzisha harusi" utaonyesha kosa halisi.
+  python manage.py anzisha_harusi --malipo "$HARUSI_MALIPO" || echo "ONYO: kuanzisha harusi kumeshindwa; fungua mfumo uone kosa."
 fi
