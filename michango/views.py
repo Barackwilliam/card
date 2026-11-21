@@ -526,14 +526,27 @@ def afya(request):
 
 @csrf_exempt
 def cron_vikumbusho(request):
-    """Inaitwa na scheduler (GitHub Actions, cron-job.org, n.k.) mara 2 kwa siku.
+    """Inaitwa na scheduler (cron-job.org, GitHub Actions, n.k.) kuanzisha vikumbusho.
 
-    Tuma siri kwenye header: `Authorization: Bearer <CRON_SECRET>`.
+    Siri (CRON_SECRET) inaweza kutumwa kwa njia yoyote kati ya hizi:
+      - header: `Authorization: Bearer <siri>`
+      - kwenye URL: `/cron/vikumbusho/?siri=<siri>` (rahisi kwa cron-job.org)
+    GET na POST zote zinakubaliwa. Ni salama kuiita mara nyingi: vikomo vya
+    Mipangilio vinazuia mtu kutumiwa zaidi ya mara zilizoruhusiwa.
     """
-    siri = settings.CRON_SECRET
-    header = request.headers.get("Authorization", "")
-    if not siri or not hmac.compare_digest(header, f"Bearer {siri}"):
-        return HttpResponseForbidden("Siri si sahihi.")
+    siri = (settings.CRON_SECRET or "").strip()
+    if not siri:
+        return HttpResponseForbidden(
+            "CRON_SECRET haijawekwa kwenye server. Iongeze kwenye Render -> Environment, kisha deploy upya."
+        )
+    header = request.headers.get("Authorization", "").strip()
+    iliyotumwa = header[7:].strip() if header.lower().startswith("bearer ") else request.GET.get("siri", "").strip()
+    if not iliyotumwa:
+        return HttpResponseForbidden(
+            "Siri haikutumwa. Ongeza ?siri=<CRON_SECRET> mwishoni mwa URL, au header 'Authorization: Bearer <CRON_SECRET>'."
+        )
+    if not hmac.compare_digest(iliyotumwa, siri):
+        return HttpResponseForbidden("Siri hailingani na CRON_SECRET ya server. Hakikisha umenakili neno lilelile.")
     matokeo = {}
     for h in Harusi.objects.all():
         r = huduma.tuma_vikumbusho(h)

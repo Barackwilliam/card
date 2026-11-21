@@ -234,6 +234,19 @@ class WebhookTests(Msingi):
 
 
 class CronTests(Msingi):
+    def test_siri_kwenye_url_na_sababu_wazi(self):
+        url = reverse("cron_vikumbusho")
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 403)
+        self.assertIn("haikutumwa", r.content.decode())
+        r = self.client.get(url, {"siri": "kosa"})
+        self.assertIn("hailingani", r.content.decode())
+        self.assertEqual(self.client.get(url, {"siri": "siri123"}).status_code, 200)
+        self.assertEqual(self.client.get(url, HTTP_AUTHORIZATION="Bearer siri123 ").status_code, 200)
+        with override_settings(CRON_SECRET=""):
+            r = self.client.get(url, {"siri": "siri123"})
+            self.assertIn("haijawekwa", r.content.decode())
+
     def test_siri_inahitajika(self):
         url = reverse("cron_vikumbusho")
         self.assertEqual(self.client.post(url).status_code, 403)
