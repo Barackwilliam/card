@@ -28,6 +28,12 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = [h.strip() for h in env("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
+# Render inaweka anwani ya huduma yenyewe; tunaitumia bila mipangilio ya ziada.
+RENDER_HOST = env("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_HOST:
+    ALLOWED_HOSTS.append(RENDER_HOST)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOST}")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -135,7 +141,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # Anwani kamili ya mfumo ukiwa hewani, mfano https://michango.example.com
 # Inatumika kutengeneza link za picha WhatsApp ikiwa picha ziko "media/".
-SITE_URL = env("SITE_URL", "http://localhost:8000").rstrip("/")
+SITE_URL = env("SITE_URL", f"https://{RENDER_HOST}" if RENDER_HOST else "http://localhost:8000").rstrip("/")
 
 # WhatsApp Cloud API (Meta). Bila WHATSAPP_TOKEN mfumo unafanya "majaribio":
 # unaandika ujumbe kwenye kumbukumbu bila kuutuma.

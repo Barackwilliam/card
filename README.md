@@ -37,12 +37,15 @@ Majaribio (tests): `python manage.py test michango`
 
 Vigezo vyote viko kwenye `.env.example`.
 
-## 3. Kuweka hewani (mfano Render au Railway)
+## 3. Kuweka hewani kwenye Render
 
-- Build command: `./build.sh`
-- Start command: `gunicorn config.wsgi`
-- Weka vigezo vyote vya `.env.example` kwenye mipangilio ya huduma (environment variables).
-- Baada ya kuweka hewani, fungua shell ya huduma kisha: `python manage.py createsuperuser` na `python manage.py anzisha_harusi --malipo "..."`.
+Repo ina `render.yaml`, kwa hiyo Render inasoma mipangilio yenyewe:
+
+1. Render → **New → Blueprint** → chagua repo hii na tawi lake.
+2. Jaza thamani unazoombwa (`DATABASE_URL`, `SUPABASE_*`, `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`, `HARUSI_MALIPO`). `SECRET_KEY` na `CRON_SECRET` zinatengenezwa zenyewe.
+3. Build ikimaliza, mfumo unakuwa umetengeneza msimamizi na harusi ya kwanza wenyewe, bila kuhitaji terminal. Ingia kwenye `https://<jina>.onrender.com`.
+
+Mpango wa bure wa Render "unalala" baada ya dakika 15 bila mtu. Mtu wa kwanza kufungua baada ya hapo atasubiri kama dakika moja. Vikumbusho vya GitHub Actions vinauamsha wenyewe.
 
 Kubadilisha jina la bwana harusi, tarehe ya mwisho, maelekezo ya malipo, picha ya kadi au mahali jina linapokaa: **Mipangilio** (`/admin/`) → Harusi.
 
