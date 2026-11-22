@@ -36,7 +36,7 @@
       <li><span>Gusa <b>Link a device</b>, kisha elekeza kamera kwenye QR hii:</span></li>
       </ol>
       <div style="text-align:center"><div class="qr-box" id="qr" data-qr="{{ hali.qr }}"></div></div>
-      <p class="muted small" style="text-align:center;margin-top:10px">QR inabadilika kila baada ya sekunde 20; ukurasa unajisasisha wenyewe. Kama unatumia simu hiyo hiyo kufungua ukurasa huu, fungua ukurasa huu kwenye simu au kompyuta nyingine ili uscan.</p>
+      <p class="muted small" style="text-align:center;margin-top:10px">QR inabadilika yenyewe kila baada ya sekunde 20 hivi; usipakie ukurasa upya. Ikikataa, tumia <a href="#namba-mpya">code ya namba</a> badala yake. Kama unatumia simu hiyo hiyo kufungua ukurasa huu, fungua ukurasa huu kwenye simu au kompyuta nyingine ili uscan.</p>
       {% endif %}
   {% elif hali.hali == "imeondolewa" %}
     <div class="notice err"><svg class="ico"><use href="#i-alert"/></svg><span>Simu iliondoa muunganisho. QR mpya inatengenezwa, subiri kidogo.</span></div>
@@ -68,6 +68,33 @@
   {% endif %}
   {% if foleni %}<button class="btn danger" name="kitendo" value="futa_foleni" data-thibitisha="Gusa tena kuondoa {{ foleni }}">Ondoa zinazosubiri</button>{% endif %}
 </form>
+
+<section class="card">
+  <h2 style="margin-bottom:4px">Kasi ya kutuma</h2>
+  <p class="muted small" style="margin-bottom:12px">Polepole ni salama zaidi. Namba mpya ianze na kasi ndogo.</p>
+  <form method="post" class="form" style="gap:12px">{% csrf_token %}
+    <input type="hidden" name="kitendo" value="vikomo">
+    <div class="btn-row">
+      <div class="field" style="flex:1 1 140px"><label for="kikomo_saa">Jumbe kwa saa</label>
+        <select name="kikomo_saa" id="kikomo_saa">{% for n in "5 10 15 20 30"|make_list_nums %}<option value="{{ n }}" {% if hali.kikomo_saa == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+      <div class="field" style="flex:1 1 140px"><label for="kikomo_siku">Jumbe kwa siku</label>
+        <select name="kikomo_siku" id="kikomo_siku">{% for n in "20 30 40 60 80 100"|make_list_nums %}<option value="{{ n }}" {% if hali.kikomo_siku == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+    </div>
+    <button class="btn sm">Hifadhi kasi</button>
+  </form>
+</section>
+
+<details class="card more" id="namba-mpya" {% if hali.hali == "imeondolewa" %}open{% endif %}>
+  <summary>Unganisha namba nyingine</summary>
+  <p class="muted small" style="margin-bottom:12px">Tumia hii kama namba ya sasa imezuiliwa, au unataka kutuma kwa namba tofauti. Namba ya zamani itaondolewa kwenye mfumo; jumbe zinazosubiri zitatumwa kwa namba mpya.</p>
+  <form method="post" class="form" style="gap:12px">{% csrf_token %}
+    <input type="hidden" name="kitendo" value="namba_mpya">
+    <div class="field"><label for="pairing_namba">Namba mpya (si lazima)</label>
+      <input type="tel" name="pairing_namba" id="pairing_namba" inputmode="tel" placeholder="0754 123 456">
+      <div class="help">Ukiandika namba, utapata <b>code ya herufi 8</b> ya kuandika kwenye simu badala ya kuscan QR. Ukiacha wazi, QR itaonekana.</div></div>
+    <button class="btn pri" data-thibitisha="Gusa tena: namba ya sasa itaondolewa"><svg class="ico"><use href="#i-phone"/></svg>Ondoa namba ya sasa, unganisha nyingine</button>
+  </form>
+</details>
 
 <details class="card more">
   <summary>Kwa nini jumbe zinatumwa polepole?</summary>
@@ -107,14 +134,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
   const el = document.getElementById('qr');
-  if (el && window.QRCode) new QRCode(el, { text: el.dataset.qr, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.L });
-  const mwanzo = '{{ hali.hali|escapejs }}|{{ hali.qr|slice:":40"|escapejs }}|{{ hali.worker_yuko_hewani|yesno:"1,0" }}';
+  let qrSasa = el ? el.dataset.qr : '';
+  function choraQr(text) {
+    if (!el || !window.QRCode) return;
+    el.innerHTML = '';
+    new QRCode(el, { text, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.L });
+  }
+  choraQr(qrSasa);
+  // QR mpya inachorwa papo hapo (bila kupakia ukurasa upya, ili kuscan kusikatizwe).
+  // Ukurasa unapakiwa upya tu hali ikibadilika (mfano imeunganishwa).
+  const mwanzo = '{{ hali.hali|escapejs }}|{{ hali.worker_yuko_hewani|yesno:"1,0" }}|{{ hali.qr|slice:":5"|escapejs }}';
   setInterval(async () => {
     try {
       const d = await (await fetch('?json=1')).json();
-      if (`${d.hali}|${(d.qr || '').slice(0, 40)}|${d.hewani ? 1 : 0}` !== mwanzo) location.reload();
+      const sasa = `${d.hali}|${d.hewani ? 1 : 0}|${(d.qr || '').slice(0, 5)}`;
+      if (sasa !== mwanzo) { location.reload(); return; }
+      if (d.qr && d.qr !== qrSasa && !d.qr.startsWith('CODE:')) { qrSasa = d.qr; choraQr(qrSasa); }
     } catch (e) {}
-  }, 5000);
+  }, 4000);
 </script>
 {% endif %}
 {% endblock %}

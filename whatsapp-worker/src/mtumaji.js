@@ -57,9 +57,12 @@ export class Mtumaji {
     // Nje ya saa za kutuma, ni majaribio ya haraka tu (kitufe "Tuma sasa hivi") yanayotumwa.
     const ndani = ndaniYaSaaZaKutuma(sasa, cfg);
 
+    // Vikomo: kidogo kati ya vya mipangilio ya worker na vilivyowekwa kwenye ukurasa wa WhatsApp
+    const kwaSaa = Math.min(cfg.kikomoKwaSaa, hali.kikomo_saa || Infinity);
+    const kwaSiku = Math.min(cfg.kikomoKwaSiku, hali.kikomo_siku || Infinity);
     const idadi = await db.idadiZilizotumwa();
-    if (idadi.saa >= cfg.kikomoKwaSaa) return { subiri: 5 * DAKIKA, sababu: 'kikomo_saa' };
-    if (idadi.siku >= cfg.kikomoKwaSiku) return { subiri: 15 * DAKIKA, sababu: 'kikomo_siku' };
+    if (idadi.saa >= kwaSaa) return { subiri: 5 * DAKIKA, sababu: 'kikomo_saa' };
+    if (idadi.siku >= kwaSiku) return { subiri: 15 * DAKIKA, sababu: 'kikomo_siku' };
 
     const u = await db.unaofuata({ harakaPekee: !ndani });
     if (!u) return ndani ? { subiri: 15000, sababu: 'foleni_tupu' } : { subiri: 20000, sababu: 'nje_ya_saa' };

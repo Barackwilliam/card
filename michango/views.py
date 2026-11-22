@@ -22,7 +22,7 @@ from .forms import (
 )
 from .ingiza import ingiza_csv
 from .kadi import tengeneza_kadi
-from .models import Harusi, Mchango, Mgeni, Ujumbe, WhatsAppHali, safisha_simu
+from .models import Harusi, Mchango, Mgeni, Ujumbe, WhatsAppAuth, WhatsAppHali, safisha_simu
 
 log = logging.getLogger("michango")
 
@@ -539,6 +539,32 @@ def whatsapp_hali(request, harusi):
             hali.sababu_ya_kusimama = ""
             hali.save(update_fields=["imesitishwa", "imesimamishwa_mpaka", "sababu_ya_kusimama", "updated"])
             messages.success(request, "Utumaji umeendelea.")
+        elif kitendo == "namba_mpya":
+            namba = safisha_simu(request.POST.get("pairing_namba", ""))
+            if namba and len(namba) < 11:
+                messages.error(request, "Namba si kamili. Andika kama 0754123456 au +255754123456.")
+                return redirect("whatsapp")
+            hali.anza_upya = True
+            hali.pairing_namba = namba
+            hali.hali, hali.qr, hali.namba = "inaunganisha", "", ""
+            hali.taarifa = "Inaondoa namba ya zamani na kuandaa muunganisho mpya"
+            hali.save()
+            WhatsAppAuth.objects.all().delete()
+            messages.success(
+                request,
+                "Namba ya zamani imeondolewa. Subiri sekunde 10-30: "
+                + ("code ya kuunganisha itaonekana hapa." if namba else "QR mpya itaonekana hapa."),
+            )
+        elif kitendo == "vikomo":
+            try:
+                siku = max(5, min(int(request.POST.get("kikomo_siku", 40)), 150))
+                saa = max(3, min(int(request.POST.get("kikomo_saa", 15)), 30))
+            except ValueError:
+                messages.error(request, "Vikomo si sahihi.")
+                return redirect("whatsapp")
+            hali.kikomo_siku, hali.kikomo_saa = siku, saa
+            hali.save(update_fields=["kikomo_siku", "kikomo_saa", "updated"])
+            messages.success(request, f"Kasi imewekwa: jumbe {saa} kwa saa, {siku} kwa siku.")
         elif kitendo == "futa_foleni":
             n = Ujumbe.objects.filter(mgeni__harusi=harusi, hali="kwenye_foleni").update(
                 hali="imeghairiwa", kosa="Imeghairiwa na msimamizi"
@@ -559,7 +585,8 @@ def whatsapp_hali(request, harusi):
         "sasa": timezone.now(),
     }
     if request.GET.get("json"):
-        return JsonResponse({"hali": hali.hali, "qr": hali.qr, "foleni": ctx["foleni"], "hewani": hali.worker_yuko_hewani})
+        return JsonResponse({"hali": hali.hali, "qr": hali.qr, "foleni": ctx["foleni"], "hewani": hali.worker_yuko_hewani,
+                             "anza_upya": hali.anza_upya})
     return render(request, "michango/whatsapp.html", ctx)
 
 

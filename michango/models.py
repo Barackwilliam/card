@@ -257,6 +257,12 @@ class WhatsAppHali(models.Model):
     namba = models.CharField(max_length=40, blank=True)
     taarifa = models.TextField("Taarifa ya mwisho", blank=True)
     imesitishwa = models.BooleanField("Utumaji umesitishwa na msimamizi", default=False)
+    # Ombi la kuunganisha namba nyingine: worker anafuta session na kuanza upya
+    anza_upya = models.BooleanField(default=False)
+    pairing_namba = models.CharField("Namba ya kuunganisha kwa code", max_length=20, blank=True)
+    # Vikomo vya kutuma (worker anatumia kidogo kati ya hivi na vya mipangilio yake)
+    kikomo_siku = models.PositiveSmallIntegerField("Jumbe kwa siku", default=40)
+    kikomo_saa = models.PositiveSmallIntegerField("Jumbe kwa saa", default=15)
     imesimamishwa_mpaka = models.DateTimeField("Kinga: imesimama mpaka", null=True, blank=True)
     sababu_ya_kusimama = models.TextField(blank=True)
     kikomo_cha_whatsapp = models.TextField("Taarifa ya kikomo kutoka WhatsApp", blank=True)

@@ -121,6 +121,13 @@ test('mzunguko wa kutuma na kinga', { skip }, async (t) => {
   assert.equal((await m.hatua()).sababu, 'imesitishwa');
   await db.wekaHali({ imesitishwa: false });
 
+  // Kikomo kilichowekwa kwenye ukurasa wa WhatsApp kinashinda kikubwa cha worker
+  await db.wekaHali({ kikomo_saa: 1 });
+  const m3 = new Mtumaji({ db, cfg, log, sleep: async () => {}, sasa: () => SAA_TISA, rnd: () => 0 });
+  m3.wekaSocket(sock, true);
+  assert.equal((await m3.hatua()).sababu, 'kikomo_saa');
+  await db.wekaHali({ kikomo_saa: 15 });
+
   // Kikomo cha saa
   const kikomo = { ...cfg, kikomoKwaSaa: 1 };
   const m2 = new Mtumaji({ db, cfg: kikomo, log, sleep: async () => {}, sasa: () => SAA_TISA, rnd: () => 0 });

@@ -36,6 +36,8 @@ let sock = null;
 let kuzima = false;
 let majaribioYaKuunganisha = 0;
 let hali = 'haijaanza';
+let inaanzaUpya = false; // tunabadilisha namba: close handler isiunganishe yenyewe
+let pairingNamba = cfg.pairingNamba;
 
 // ---------- Kufuli: worker moja tu kwa wakati ----------
 async function pataKufuli() {
@@ -77,6 +79,37 @@ async function kaguaKikomo() {
 }
 
 // ---------- Muunganisho ----------
+function zimaSocket() {
+  // Ondoa listeners zote kwanza: socket ya zamani isiandike tena session (creds.update) baada ya kufutwa
+  try {
+    for (const e of ['creds.update', 'connection.update', 'messages.update', 'messages.upsert', 'message-capping.update']) {
+      sock?.ev?.removeAllListeners(e);
+    }
+  } catch {}
+  try {
+    sock?.end(undefined);
+  } catch {}
+  mtumaji.wekaSocket(null, false);
+}
+
+async function anzaUpya(namba) {
+  inaanzaUpya = true;
+  try {
+    log.info({ pairing: Boolean(namba) }, 'Inaondoa namba ya zamani na kuanza upya');
+    zimaSocket();
+    await pool.query('DELETE FROM wa_auth');
+    pairingNamba = (namba || '').replace(/\D/g, '') || cfg.pairingNamba;
+    hali = 'inaunganisha';
+    await db.wekaHali({ hali, qr: '', namba: '', taarifa: 'Inaandaa muunganisho mpya' });
+    await db.kamilishaAnzaUpya();
+    majaribioYaKuunganisha = 0;
+    await sleep(1500);
+    await unganisha();
+  } finally {
+    inaanzaUpya = false;
+  }
+}
+
 async function unganisha() {
   const auth = await usePostgresAuthState(pool);
   let version;
@@ -106,10 +139,10 @@ async function unganisha() {
   sock.ev.on('connection.update', async (u) => {
     try {
       if (u.qr) {
-        if (cfg.pairingNamba && !auth.state.creds.registered) {
+        if (pairingNamba && !auth.state.creds.registered) {
           if (!codeImeombwa) {
             codeImeombwa = true;
-            const code = await sock.requestPairingCode(cfg.pairingNamba);
+            const code = await sock.requestPairingCode(pairingNamba);
             hali = 'inasubiri_qr';
             await db.wekaHali({ hali, qr: `CODE:${code}`, taarifa: 'Andika code hii kwenye simu' });
           }
@@ -135,7 +168,7 @@ async function unganisha() {
         mtumaji.wekaSocket(sock, false);
         const code = u.lastDisconnect?.error?.output?.statusCode;
         log.warn({ code }, 'Muunganisho umefungwa');
-        if (kuzima) return;
+        if (kuzima || inaanzaUpya) return;
         if (code === DisconnectReason.loggedOut) {
           hali = 'imeondolewa';
           await auth.futa();
@@ -150,7 +183,10 @@ async function unganisha() {
           await db.wekaHali({ taarifa: `Inaunganisha upya baada ya sekunde ${Math.round(subiri / 1000)} (code ${code ?? '?'})` });
           await sleep(subiri);
         }
-        if (!kuzima) unganisha().catch((e) => log.error(e, 'Kuunganisha upya kumeshindwa'));
+        if (!kuzima && !inaanzaUpya) {
+          zimaSocket();
+          unganisha().catch((e) => log.error(e, 'Kuunganisha upya kumeshindwa'));
+        }
       }
     } catch (e) {
       log.error(e, 'Kosa kwenye connection.update');
@@ -234,6 +270,16 @@ async function main() {
   setInterval(() => db.pigo().catch(() => {}), 30000);
   db.pigo().catch(() => {});
   setInterval(kaguaKikomo, 20 * 60 * 1000);
+  // Msimamizi akibofya "Unganisha namba nyingine" kwenye mfumo
+  setInterval(async () => {
+    if (inaanzaUpya || kuzima) return;
+    try {
+      const h = await db.soma();
+      if (h.anza_upya) await anzaUpya(h.pairing_namba);
+    } catch (e) {
+      log.error(e, 'Kuanza upya kumeshindwa');
+    }
+  }, 5000);
   await unganisha();
   zunguka();
 

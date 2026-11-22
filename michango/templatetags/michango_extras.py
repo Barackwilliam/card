@@ -45,3 +45,9 @@ def siku_zilizobaki(tarehe):
         return (tarehe - timezone.localdate()).days
     except TypeError:
         return None
+
+
+@register.filter
+def make_list_nums(s):
+    """'5 10 15' -> [5, 10, 15] (kwa orodha za kuchagua)."""
+    return [int(x) for x in str(s).split()]

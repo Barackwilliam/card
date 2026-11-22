@@ -16,8 +16,9 @@ export function hifadhi(pool) {
   return {
     async hakikishaHali() {
       await pool.query(
-        `INSERT INTO wa_hali (id, hali, qr, namba, taarifa, imesitishwa, sababu_ya_kusimama, kikomo_cha_whatsapp, updated)
-         VALUES (1, 'haijaanza', '', '', '', false, '', '', now()) ON CONFLICT (id) DO NOTHING`,
+        `INSERT INTO wa_hali (id, hali, qr, namba, taarifa, imesitishwa, sababu_ya_kusimama, kikomo_cha_whatsapp,
+           anza_upya, pairing_namba, kikomo_siku, kikomo_saa, updated)
+         VALUES (1, 'haijaanza', '', '', '', false, '', '', false, '', 40, 15, now()) ON CONFLICT (id) DO NOTHING`,
       );
     },
 
@@ -33,8 +34,14 @@ export function hifadhi(pool) {
     },
 
     async soma() {
-      const r = await pool.query('SELECT imesitishwa, imesimamishwa_mpaka FROM wa_hali WHERE id = 1');
-      return r.rows[0] || { imesitishwa: false, imesimamishwa_mpaka: null };
+      const r = await pool.query(
+        'SELECT imesitishwa, imesimamishwa_mpaka, anza_upya, pairing_namba, kikomo_siku, kikomo_saa FROM wa_hali WHERE id = 1',
+      );
+      return r.rows[0] || { imesitishwa: false, imesimamishwa_mpaka: null, anza_upya: false, pairing_namba: '' };
+    },
+
+    async kamilishaAnzaUpya() {
+      await pool.query('UPDATE wa_hali SET anza_upya = false, updated = now() WHERE id = 1');
     },
 
     async simamisha(mpaka, sababu) {

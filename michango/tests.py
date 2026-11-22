@@ -748,3 +748,40 @@ class MifanoYaUjumbeTests(TestCase):
         for k, t in jumbe.MFANO.items():
             self.assertEqual(jumbe.vishika_visivyojulikana(t, k), [], k)
             self.assertNotIn("_malipo", t)
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class NambaMpyaTests(Msingi):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user("w2", password="nenosiri-zuri-123", is_staff=True))
+
+    def test_kuunganisha_namba_nyingine(self):
+        from .models import WhatsAppAuth, WhatsAppHali
+
+        WhatsAppAuth.objects.create(jina="creds", data="{}")
+        h = WhatsAppHali.pata()
+        h.hali, h.namba = "imeunganishwa", "+255700000000"
+        h.save()
+        r = self.client.post(reverse("whatsapp"), {"kitendo": "namba_mpya", "pairing_namba": "0711 000 009"}, follow=True)
+        self.assertContains(r, "code ya kuunganisha")
+        h.refresh_from_db()
+        self.assertTrue(h.anza_upya)
+        self.assertEqual(h.pairing_namba, "255711000009")
+        self.assertEqual((h.hali, h.namba), ("inaunganisha", ""))
+        self.assertFalse(WhatsAppAuth.objects.exists())
+        r = self.client.post(reverse("whatsapp"), {"kitendo": "namba_mpya", "pairing_namba": "0711"}, follow=True)
+        self.assertContains(r, "Namba si kamili")
+
+    def test_kasi_ya_kutuma(self):
+        from .models import WhatsAppHali
+
+        self.client.post(reverse("whatsapp"), {"kitendo": "vikomo", "kikomo_saa": "10", "kikomo_siku": "20"})
+        h = WhatsAppHali.pata()
+        self.assertEqual((h.kikomo_saa, h.kikomo_siku), (10, 20))
+        self.client.post(reverse("whatsapp"), {"kitendo": "vikomo", "kikomo_saa": "999", "kikomo_siku": "1"})
+        h.refresh_from_db()
+        self.assertEqual((h.kikomo_saa, h.kikomo_siku), (30, 5))  # vinabanwa ndani ya mipaka salama
+        r = self.client.get(reverse("whatsapp"))
+        self.assertContains(r, "Unganisha namba nyingine")
+        self.assertContains(r, "Kasi ya kutuma")
