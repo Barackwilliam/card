@@ -692,3 +692,59 @@ class OrodhaNaPdfTests(Msingi):
         self.assertContains(r, "Pakua PDF")
         self.assertContains(r, "hawana namba ya simu")
         self.assertContains(self.client.get(reverse("dashibodi")), "Waliochangia (PDF)")
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class UjumbeWaSalioTests(Msingi):
+    def test_ujumbe_wa_salio_wa_familia(self):
+        import importlib
+
+        from .forms import _kagua_maandishi
+
+        mig = importlib.import_module("michango.migrations.0009_ujumbe_wa_salio")
+        _kagua_maandishi(mig.UJUMBE_WA_SALIO, "kikumbusho_salio")
+        self.h.ujumbe_salio = mig.UJUMBE_WA_SALIO
+        self.h.maelekezo_malipo = "📱 M-PESA\nNamba: 0711000000\nJina: Familia"
+        self.h.save()
+        m = self.mgeni("Juma Ali", "0711000002", ahadi=100_000)
+        Mchango.objects.create(mgeni=m, kiasi=40_000)
+        t = huduma.tuma_kikumbusho(m).maandishi
+        self.assertTrue(t.startswith("HABARI YAKO JUMA ALI!\n\nTunapenda kukushukuru kwa mchango wako wa TSh 40,000 kwa ajili ya harusi ya ndugu yetu Richard Ngelula."))
+        self.assertIn("salio la ahadi yako ni TSh 60,000, ambalo tunaomba likamilishwe kabla ya tarehe 30.11.2026.", t)
+        self.assertIn("NAMBA ZA MALIPO:\n\n📱 M-PESA\nNamba: 0711000000\nJina: Familia\n\n", t)
+        self.assertIn("Asante sana, Mungu akubariki!\n(Jibu ACHA kama hutaki kupokea vikumbusho.)", t)
+
+    def test_malipo_ya_mistari_kwenye_mipangilio(self):
+        self.client.force_login(User.objects.create_user("s", password="nenosiri-zuri-123", is_staff=True))
+        r = self.client.post(reverse("mipangilio"), {
+            "sehemu": "harusi", "jina": "H", "mwenye_harusi": "Richard Ngelula", "familia": "", "tarehe_mwisho": "2026-11-30",
+            "maelekezo_malipo": "📱 M-PESA\r\nNamba: 0767753553\r\nJina: Richard Ngelula",
+        })
+        self.assertEqual(r.status_code, 302)
+        self.h.refresh_from_db()
+        self.assertEqual(self.h.maelekezo_malipo, "📱 M-PESA\nNamba: 0767753553\nJina: Richard Ngelula")
+
+
+class NambaZaMalipoTests(TestCase):
+    def test_namba_mbili_kwenye_migration(self):
+        import importlib
+
+        mig = importlib.import_module("michango.migrations.0009_ujumbe_wa_salio")
+        self.assertIn("0767753553", mig.MALIPO)
+        self.assertIn("0681965636", mig.MALIPO)
+
+    def test_ujumbe_wa_kawaida_na_malipo_ya_mistari(self):
+        from . import jumbe
+
+        t = jumbe.tunga("kikumbusho", ["A", "R", "30.11.2026", "📱 M-PESA\nNamba: 1\n\n📱 AIRTEL\nNamba: 2"])
+        self.assertIn("Malipo:\n📱 M-PESA\nNamba: 1\n\n📱 AIRTEL\nNamba: 2", t)
+        self.assertIn("Malipo: M-Pesa 1", jumbe.tunga("kikumbusho", ["A", "R", "30.11.2026", "M-Pesa 1"]))
+
+
+class MifanoYaUjumbeTests(TestCase):
+    def test_mifano_ina_vishika_halali_tu(self):
+        from . import jumbe
+
+        for k, t in jumbe.MFANO.items():
+            self.assertEqual(jumbe.vishika_visivyojulikana(t, k), [], k)
+            self.assertNotIn("_malipo", t)

@@ -19,6 +19,11 @@ def _chagua(rng, items):
     return rng.choice(items)
 
 
+def _malipo(malipo):
+    """'Malipo: ...' kwenye mstari mmoja, au chini yake kama maelekezo yana mistari kadhaa."""
+    return f"Malipo:\n{malipo}" if "\n" in (malipo or "") else f"Malipo: {malipo}"
+
+
 def kadi(params, rng=random):
     jina, mwenye, tarehe, malipo = params
     salamu = _chagua(rng, SALAMU).format(jina=jina)
@@ -32,7 +37,7 @@ def kadi(params, rng=random):
         f"Mchango wako unakaribishwa kabla ya {tarehe}.",
         f"Tafadhali tufikishie mchango wako kabla ya {tarehe}.",
     ])
-    return f"{salamu}, {mwili}\n\n{ombi}\nMalipo: {malipo}\n\n{_chagua(rng, SHUKRANI_MWISHO)}"
+    return f"{salamu}, {mwili}\n\n{ombi}\n{_malipo(malipo)}\n\n{_chagua(rng, SHUKRANI_MWISHO)}"
 
 
 def kikumbusho(params, rng=random):
@@ -48,7 +53,7 @@ def kikumbusho(params, rng=random):
         "Kama umeshachangia, tafadhali puuza ujumbe huu.",
         "Kama tayari umechangia, asante sana na puuza ujumbe huu.",
     ])
-    return f"{salamu}, {mwili} {mwisho}\nMalipo: {malipo}\n\n{puuza} {_chagua(rng, SHUKRANI_MWISHO)}\n{ACHA}"
+    return f"{salamu}, {mwili} {mwisho}\n{_malipo(malipo)}\n\n{puuza} {_chagua(rng, SHUKRANI_MWISHO)}\n{ACHA}"
 
 
 def kikumbusho_salio(params, rng=random):
@@ -62,7 +67,7 @@ def kikumbusho_salio(params, rng=random):
         f"Salio la ahadi yako ni TSh {salio}, kabla ya {tarehe}.",
         f"Bado TSh {salio} kukamilisha ahadi yako. Mwisho ni {tarehe}.",
     ])
-    return f"{salamu}, {asante} {salio_txt}\nMalipo: {malipo}\n\n{_chagua(rng, SHUKRANI_MWISHO)}\n{ACHA}"
+    return f"{salamu}, {asante} {salio_txt}\n{_malipo(malipo)}\n\n{_chagua(rng, SHUKRANI_MWISHO)}\n{ACHA}"
 
 
 def shukrani(params, rng=random):
@@ -104,9 +109,9 @@ MAELEZO_YA_VISHIKA = {
 
 # Mfano unaoonyeshwa mtumiaji akianza kuandika (si lazima atumie)
 MFANO = {
-    "kadi": "Habari {jina}, familia inapenda kukujulisha kuhusu harusi ya mpendwa wetu {bwana_harusi}. Tafadhali pokea kadi yako ya mchango.\n\nTunaomba mchango wako kabla ya tarehe {tarehe}.\nMalipo: {malipo}\n\nAsante na Mungu akubariki.",
-    "kikumbusho": "Habari {jina}, tunakukumbusha kwa upendo kuhusu mchango wa harusi ya {bwana_harusi}. Mwisho wa kuchangia ni {tarehe}.\nMalipo: {malipo}\n\nKama umeshachangia, tafadhali puuza ujumbe huu. Asante sana.",
-    "kikumbusho_salio": "Habari {jina}, asante kwa mchango wako wa TSh {ametoa} kwa harusi ya {bwana_harusi}. Salio la ahadi yako ni TSh {salio}, kabla ya {tarehe}.\nMalipo: {malipo}\n\nMungu akubariki.",
+    "kadi": "Habari {jina}, familia inapenda kukujulisha kuhusu harusi ya mpendwa wetu {bwana_harusi}. Tafadhali pokea kadi yako ya mchango.\n\nTunaomba mchango wako kabla ya tarehe {tarehe}.\nMalipo:\n{malipo}\n\nAsante na Mungu akubariki.",
+    "kikumbusho": "Habari {jina}, tunakukumbusha kwa upendo kuhusu mchango wa harusi ya {bwana_harusi}. Mwisho wa kuchangia ni {tarehe}.\nMalipo:\n{malipo}\n\nKama umeshachangia, tafadhali puuza ujumbe huu. Asante sana.",
+    "kikumbusho_salio": "Habari {jina}, asante kwa mchango wako wa TSh {ametoa} kwa harusi ya {bwana_harusi}. Salio la ahadi yako ni TSh {salio}, kabla ya {tarehe}.\nMalipo:\n{malipo}\n\nMungu akubariki.",
     "shukrani": "Asante sana {jina}! Tumepokea mchango wako wa TSh {kiasi} kwa harusi ya {bwana_harusi}. Jumla uliyochangia ni TSh {jumla}. Mungu akubariki.",
 }
 

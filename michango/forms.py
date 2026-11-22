@@ -79,13 +79,21 @@ class HarusiForm(forms.ModelForm):
         help_texts = {
             "jina": "Linaonekana juu ya mfumo.",
             "mwenye_harusi": "Linaingia kwenye ujumbe wa WhatsApp.",
-            "maelekezo_malipo": "Mfano: M-Pesa 0754 xxx xxx (Michael Mchome). Linaingia kwenye kila ujumbe.",
+            "maelekezo_malipo": "Inaingia mahali pa {malipo} kwenye ujumbe. Unaweza kuandika mistari kadhaa (namba, jina, mtandao).",
         }
-        widgets = {"tarehe_mwisho": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+        widgets = {
+            "tarehe_mwisho": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "maelekezo_malipo": forms.Textarea(attrs={"rows": 6, "placeholder": "📱 M-PESA\nNamba: 07xx xxx xxx\nJina: ..."}),
+        }
+
+    def clean_maelekezo_malipo(self):
+        return _mistari_safi(self.cleaned_data["maelekezo_malipo"])
 
 
 def _kagua_maandishi(maandishi, template):
     from . import jumbe
+
+    maandishi = (maandishi or "").replace("\r\n", "\n").replace("\r", "\n")
 
     mbaya = jumbe.vishika_visivyojulikana(maandishi, template)
     if mbaya:
@@ -98,6 +106,10 @@ def _kagua_maandishi(maandishi, template):
         if len(t) > kikomo:
             raise forms.ValidationError(f"Ujumbe ni mrefu sana (herufi {len(t)}). Usizidi herufi {kikomo}.")
     return maandishi.strip()
+
+
+def _mistari_safi(t):
+    return (t or "").replace("\r\n", "\n").replace("\r", "\n").strip()
 
 
 class UjumbeForm(forms.ModelForm):

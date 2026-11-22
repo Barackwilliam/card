@@ -43,7 +43,7 @@ class Harusi(models.Model):
     tarehe_mwisho = models.DateField("Mwisho wa kuchangia")
     maelekezo_malipo = models.CharField(
         "Maelekezo ya malipo",
-        max_length=300,
+        max_length=500,
         help_text="Yanaingia kwenye ujumbe. Mfano: M-Pesa 0754 000 000 (Michael Mchome)",
     )
 
