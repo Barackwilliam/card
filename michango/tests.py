@@ -612,3 +612,28 @@ class UjumbeWaKadiTests(Msingi):
 
         with self.assertRaises(djforms.ValidationError):
             _kagua_maandishi("x" * 1200, "kadi")
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class VikumbushoVyaFamiliaTests(Msingi):
+    def test_matoleo_matatu_yanapokezana(self):
+        import importlib
+
+        from .forms import _kagua_maandishi
+
+        mig = importlib.import_module("michango.migrations.0007_vikumbusho_vya_familia")
+        maandishi = "\n---\n".join(mig.MATOLEO)
+        _kagua_maandishi(maandishi, "kikumbusho")  # hakuna kishika kisichojulikana
+        self.h.ujumbe_kikumbusho = maandishi
+        self.h.save()
+        m = self.mgeni("Abeid Karata", "0711000001")
+        mwanzo = set()
+        for _ in range(40):
+            t = huduma.tuma_kikumbusho(m).maandishi
+            mwanzo.add(t.split("\n")[0])
+            self.assertIn("Richard Ngelula", t)
+            self.assertIn("30.11.2026", t)
+            self.assertIn("0767753553", t)
+            self.assertTrue(t.endswith("(Jibu ACHA kama hutaki kupokea vikumbusho.)"))
+            self.assertNotIn("{", t)
+        self.assertEqual(mwanzo, {"HABARI ZA LEO, ABEID KARATA!", "SALAAM ABEID KARATA,", "HABARI YAKO, ABEID KARATA!"})

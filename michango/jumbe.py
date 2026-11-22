@@ -135,6 +135,14 @@ def jaza(maandishi: str, template: str, params) -> str:
     return _KISHIKA.sub(lambda m: thamani.get(m.group(1), m.group(0)), maandishi)
 
 
+_NENO_ACHA = re.compile(r"\bacha\b", re.IGNORECASE)
+
+
+def ina_neno_acha(maandishi: str) -> bool:
+    """Kama ujumbe tayari unamwambia mtu ajibu ACHA (neno kamili: "umeshachangia" halihesabiki)."""
+    return bool(_NENO_ACHA.search(maandishi or ""))
+
+
 def tunga(template: str, params, maalum: str = "", rng=random) -> str:
     """Tunga ujumbe: wa mtumiaji (kama upo, toleo moja kwa bahati nasibu) au wa kawaida."""
     params = list(params)
@@ -143,6 +151,6 @@ def tunga(template: str, params, maalum: str = "", rng=random) -> str:
         return WATUNGAJI[template](params, rng)
     maandishi = jaza(rng.choice(chaguo), template, params)
     # Kinga: vikumbusho lazima vimwonyeshe mtu jinsi ya kusitisha
-    if template.startswith("kikumbusho") and "acha" not in maandishi.lower():
+    if template.startswith("kikumbusho") and not ina_neno_acha(maandishi):
         maandishi += "\n" + ACHA
     return maandishi

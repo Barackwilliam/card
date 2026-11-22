@@ -19,7 +19,7 @@
       siri.value = maandishi.join('\n---\n');
       const t = (mwisho && mwisho.value.trim()) || maandishi[0] || '';
       let onyesho = jaza(t);
-      if (onyesho && niKikumbusho && !/acha/i.test(onyesho)) onyesho += '\n' + ACHA;
+      if (onyesho && niKikumbusho && !/\bacha\b/i.test(onyesho)) onyesho += '\n' + ACHA;
       kiputo.textContent = onyesho || 'Andika ujumbe wako hapo juu...';
       orodha.querySelectorAll('.toleo').forEach((d, i, all) => {
         d.querySelector('.toleo-lbl').textContent = all.length > 1 ? `Toleo ${i + 1}` : 'Ujumbe';
