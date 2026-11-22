@@ -89,12 +89,14 @@ def _kagua_maandishi(maandishi, template):
 
     mbaya = jumbe.vishika_visivyojulikana(maandishi, template)
     if mbaya:
-        ruhusiwa = ", ".join("{" + v + "}" for v in jumbe.VISHIKA[template])
+        ruhusiwa = ", ".join("{" + v + "}" for v in jumbe.vishika_vya(template))
         raise forms.ValidationError(
             f"Hivi havijulikani: {', '.join('{' + m + '}' for m in mbaya)}. Unaweza kutumia: {ruhusiwa}."
         )
-    if len(maandishi) > 3000:
-        raise forms.ValidationError("Ujumbe ni mrefu sana. Ufupishe.")
+    kikomo = 950 if template == "kadi" else 3000  # WhatsApp: maelezo ya picha yasizidi herufi 1024
+    for t in jumbe.matoleo(maandishi):
+        if len(t) > kikomo:
+            raise forms.ValidationError(f"Ujumbe ni mrefu sana (herufi {len(t)}). Usizidi herufi {kikomo}.")
     return maandishi.strip()
 
 

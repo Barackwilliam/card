@@ -584,3 +584,31 @@ class JaribioLaHarakaTests(Msingi):
 
     def test_ukurasa_wa_mgeni_una_kitufe(self):
         self.assertContains(self.client.get(reverse("mgeni", args=[self.m.pk])), "Tuma sasa hivi (jaribio)")
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class UjumbeWaKadiTests(Msingi):
+    def test_ujumbe_wa_familia_na_jina_kwa_herufi_kubwa(self):
+        import importlib
+
+        mig = importlib.import_module("michango.migrations.0006_ujumbe_wa_kadi")
+        self.h.ujumbe_kadi = mig.UJUMBE_WA_KADI
+        self.h.save()
+        m = self.mgeni("Abeid Karata", "0711000001", tumwa=False)
+        t = huduma.tuma_kadi(m).maandishi
+        self.assertTrue(t.startswith("HABARI ZA LEO, ABEID KARATA!\n\nTunayo furaha kukujulisha kuhusu maandalizi ya harusi ya ndugu yetu Richard Ngelula."))
+        self.assertIn("kabla ya tarehe 30.11.2026.", t)
+        self.assertIn("📱 M-PESA\nNamba: 0767753553\nJina: Richard Ngelula", t)
+        self.assertIn("📱 AIRTEL MONEY\nNamba: 0681965636", t)
+        self.assertTrue(t.endswith("ASANTE SANA KWA KUWA SEHEMU YA FURAHA YETU!"))
+        self.assertNotIn("{", t)
+        self.assertLess(len(t), 1024)  # kikomo cha maelezo ya picha WhatsApp
+
+    def test_kishika_JINA_kinakubaliwa_na_kikomo_cha_urefu(self):
+        from .forms import _kagua_maandishi
+
+        self.assertEqual(_kagua_maandishi("Habari {JINA}", "kikumbusho"), "Habari {JINA}")
+        from django import forms as djforms
+
+        with self.assertRaises(djforms.ValidationError):
+            _kagua_maandishi("x" * 1200, "kadi")

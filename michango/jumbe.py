@@ -87,8 +87,12 @@ VISHIKA = {
     "shukrani": ["jina", "kiasi", "bwana_harusi", "jumla"],
 }
 
+# {JINA} = jina kwa herufi kubwa (linatokana na "jina"), linaruhusiwa kwenye ujumbe wote
+ZIADA = ["JINA"]
+
 MAELEZO_YA_VISHIKA = {
     "jina": "Jina la mgeni",
+    "JINA": "JINA (herufi kubwa)",
     "bwana_harusi": "Bwana harusi",
     "tarehe": "Tarehe ya mwisho",
     "malipo": "Namba ya malipo",
@@ -115,13 +119,19 @@ def matoleo(maandishi: str) -> list[str]:
     return [t.strip() for t in _KITENGANISHI.split(maandishi or "") if t.strip()]
 
 
+def vishika_vya(template: str) -> list[str]:
+    v = VISHIKA[template]
+    return v[:1] + ZIADA + v[1:]
+
+
 def vishika_visivyojulikana(maandishi: str, template: str) -> list[str]:
-    ruhusiwa = set(VISHIKA[template])
+    ruhusiwa = set(vishika_vya(template))
     return sorted({k for k in _KISHIKA.findall(maandishi or "") if k not in ruhusiwa})
 
 
 def jaza(maandishi: str, template: str, params) -> str:
     thamani = dict(zip(VISHIKA[template], [str(p) for p in params]))
+    thamani["JINA"] = thamani.get("jina", "").upper()
     return _KISHIKA.sub(lambda m: thamani.get(m.group(1), m.group(0)), maandishi)
 
 

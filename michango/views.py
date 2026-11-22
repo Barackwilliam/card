@@ -375,7 +375,7 @@ def _mfano_wa_vishika(harusi):
     """Thamani za mfano za kuonyesha ujumbe utakavyoonekana (onyesho la WhatsApp)."""
     jina = harusi.wageni.order_by("-pk").values_list("jina", flat=True).first() or "Neema Mollel"
     return {
-        "jina": jina, "bwana_harusi": harusi.mwenye_harusi, "tarehe": huduma.tarehe(harusi.tarehe_mwisho),
+        "jina": jina, "JINA": jina.upper(), "bwana_harusi": harusi.mwenye_harusi, "tarehe": huduma.tarehe(harusi.tarehe_mwisho),
         "malipo": harusi.maelekezo_malipo, "salio": "60,000", "ametoa": "40,000", "kiasi": "50,000", "jumla": "90,000",
     }
 
@@ -416,7 +416,7 @@ def kumbusha(request, harusi):
         "michango/kumbusha.html",
         {"harusi": harusi, "form": form, "kundi": kundi, "idadi": idadi, "backend": whatsapp.backend(),
          "maandishi_ya_kundi": {k: hifadhiwa[k] or mifano[k] for k in hifadhiwa},
-         "vishika_vya_kundi": {"hawajachangia": jumbe.VISHIKA["kikumbusho"], "wana_salio": jumbe.VISHIKA["kikumbusho_salio"]},
+         "vishika_vya_kundi": {"hawajachangia": jumbe.vishika_vya("kikumbusho"), "wana_salio": jumbe.vishika_vya("kikumbusho_salio")},
          "maelezo_vishika": jumbe.MAELEZO_YA_VISHIKA, "mfano": _mfano_wa_vishika(harusi)},
     )
 
@@ -465,7 +465,7 @@ def mipangilio(request, harusi):
              {"jina": "ujumbe_salio", "kichwa": "Kikumbusho: wenye salio la ahadi", "template": "kikumbusho_salio", "kikumbusho": True},
              {"jina": "ujumbe_shukrani", "kichwa": "Shukrani mtu akichangia", "template": "shukrani", "kikumbusho": False},
          ],
-         "vishika": jumbe.VISHIKA, "mifano_ya_ujumbe": jumbe.MFANO},
+         "vishika": {k: jumbe.vishika_vya(k) for k in jumbe.VISHIKA}, "mifano_ya_ujumbe": jumbe.MFANO},
     )
 
 
