@@ -49,6 +49,18 @@
   <a class="card stat" href="{% url 'michango' %}"><div class="lbl">Malipo yaliyoingizwa</div><div class="val">{{ t.idadi_michango }}</div></a>
 </section>
 
+<section class="card">
+  <h2 style="margin-bottom:4px">Ripoti</h2>
+  <ul class="list">
+    <li><a class="item" href="{% url 'wageni_pdf' %}?hali=wamechangia"><span class="avatar" style="background:var(--ok-bg);color:var(--ok)"><svg class="ico"><use href="#i-download"/></svg></span>
+      <span class="item-main"><span class="item-title">Waliochangia (PDF)</span><span class="item-sub">{{ t.wamechangia }} · TSh {{ t.jumla_michango|tsh }}</span></span></a></li>
+    <li><a class="item" href="{% url 'wageni_pdf' %}?hali=hawajachangia"><span class="avatar" style="background:var(--warn-bg);color:var(--warn)"><svg class="ico"><use href="#i-download"/></svg></span>
+      <span class="item-main"><span class="item-title">Wasiochangia (PDF)</span><span class="item-sub">{{ t.hawajachangia }} wanasubiriwa</span></span></a></li>
+    {% if t.bila_namba %}<li><a class="item" href="{% url 'bila_namba' %}"><span class="avatar"><svg class="ico"><use href="#i-phone"/></svg></span>
+      <span class="item-main"><span class="item-title">Wasio na namba</span><span class="item-sub">{{ t.bila_namba }} · nakili orodha kwa WhatsApp</span></span><svg class="ico muted"><use href="#i-next"/></svg></a></li>{% endif %}
+  </ul>
+</section>
+
 <section class="grid grid-cols">
   <div class="card">
     <div class="card-head"><h2>Michango ya karibuni</h2><a href="{% url 'michango' %}">Yote</a></div>

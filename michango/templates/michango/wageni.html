@@ -26,6 +26,18 @@
   {% endfor %}
 </nav>
 
+{% if bila_namba and kichujio != "bila_simu" and not chagua %}
+<a class="notice" href="{% url 'bila_namba' %}"><svg class="ico"><use href="#i-phone"/></svg><span>Wageni {{ bila_namba }} hawana namba ya simu. Gusa hapa kuona orodha yao, kuinakili kwa WhatsApp na kuweka namba zao.</span></a>
+{% endif %}
+
+{% if not chagua %}
+<div class="btn-row">
+  <button type="button" class="btn sm" data-nakili="#orodha-ya-kunakili"><svg class="ico"><use href="#i-chat"/></svg>Nakili orodha kwa WhatsApp</button>
+  <a class="btn sm" href="{% url 'wageni_pdf' %}?hali={{ kichujio }}{% if q %}&q={{ q|urlencode }}{% endif %}"><svg class="ico"><use href="#i-download"/></svg>Pakua PDF</a>
+</div>
+<textarea id="orodha-ya-kunakili" hidden readonly rows="8">{{ orodha_ya_kunakili }}</textarea>
+{% endif %}
+
 <form method="post" action="{% url 'wageni_kitendo' %}" id="orodha">{% csrf_token %}
   <input type="hidden" name="rudi" value="{{ request.get_full_path }}">
   <input type="hidden" name="hali" value="{{ kichujio }}"><input type="hidden" name="q" value="{{ q }}">

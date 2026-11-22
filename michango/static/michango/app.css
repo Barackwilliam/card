@@ -284,3 +284,7 @@ textarea { min-height: 140px; line-height: 1.5; resize: vertical; }
 .kundi small { color: var(--muted); font-size: 13px; font-weight: 500; }
 .kundi:has(input:checked) { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
 .field label.switch { display: flex; margin-bottom: 0; }
+.namba-haraka { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+.namba-haraka input { min-height: 42px; padding: 8px 12px; }
+.namba-haraka .btn { flex: none; }
+@media (min-width: 700px) { .namba-haraka { width: auto; margin-top: 0; margin-left: auto; } .namba-haraka input { width: 170px; } }

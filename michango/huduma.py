@@ -268,6 +268,41 @@ def takwimu(harusi: Harusi) -> dict:
         ).exclude(hali__in=Ujumbe.HALI_ZISIZOHESABIKA).count(),
         "jumbe_zilizoshindwa": Ujumbe.objects.filter(mgeni__harusi=harusi, hali="umeshindwa").count(),
         "jumbe_foleni": Ujumbe.objects.filter(mgeni__harusi=harusi, hali="kwenye_foleni").count(),
+        "bila_namba": wageni.filter(simu="").count(),
         "whatsapp_hewani": whatsapp.iko_hewani(),
         "whatsapp_backend": whatsapp.backend(),
     }
+
+
+ORODHA_VICHWA = {
+    "wamechangia": ("ORODHA YA WALIOCHANGIA", "Asanteni sana kwa upendo na mchango wenu! Mungu awabariki. 🙏"),
+    "hawajachangia": ("WAGENI AMBAO BADO HAWAJACHANGIA", "Tunawakumbusha kwa upendo: michango inapokelewa mpaka {tarehe}."),
+    "wana_salio": ("WENYE SALIO LA AHADI", "Tunawashukuru kwa mlichokwisha toa. Salio linapokelewa mpaka {tarehe}."),
+    "bila_simu": ("WAGENI AMBAO HATUNA NAMBA ZAO", "Kama una namba ya mmojawapo, tafadhali tutumie. Asante sana! 🙏"),
+    "hawajatumiwa": ("WAGENI AMBAO BADO HAWAJAPATA KADI", ""),
+    "wametumiwa": ("WAGENI WALIOPATA KADI", ""),
+    "wote": ("ORODHA YA WAGENI", ""),
+}
+
+
+def maandishi_ya_orodha(harusi, kichujio, wageni) -> str:
+    """Orodha tayari kubandikwa WhatsApp (herufi nzito kwa *...*, mistari yenye namba)."""
+    kichwa, mwisho = ORODHA_VICHWA.get(kichujio, ORODHA_VICHWA["wote"])
+    mistari = [f"*{kichwa}*", f"_{harusi.jina}_", ""]
+    jumla = 0
+    for i, m in enumerate(wageni, 1):
+        ametoa = m.jumla_iliyotolewa or 0
+        jumla += ametoa
+        if kichujio == "wamechangia":
+            mistari.append(f"{i}. {m.jina} – TSh {tsh(ametoa)}")
+        elif kichujio == "wana_salio":
+            mistari.append(f"{i}. {m.jina} – ametoa {tsh(ametoa)}, salio {tsh(max((m.ahadi or 0) - ametoa, 0))}")
+        else:
+            mistari.append(f"{i}. {m.jina}")
+    if not wageni:
+        mistari.append("(Hakuna kwa sasa)")
+    if kichujio == "wamechangia" and wageni:
+        mistari += ["", f"*Jumla: TSh {tsh(jumla)}*"]
+    if mwisho:
+        mistari += ["", mwisho.format(tarehe=tarehe(harusi.tarehe_mwisho))]
+    return "\n".join(mistari)

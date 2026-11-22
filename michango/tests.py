@@ -637,3 +637,58 @@ class VikumbushoVyaFamiliaTests(Msingi):
             self.assertTrue(t.endswith("(Jibu ACHA kama hutaki kupokea vikumbusho.)"))
             self.assertNotIn("{", t)
         self.assertEqual(mwanzo, {"HABARI ZA LEO, ABEID KARATA!", "SALAAM ABEID KARATA,", "HABARI YAKO, ABEID KARATA!"})
+
+
+class OrodhaNaPdfTests(Msingi):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user("o", password="nenosiri-zuri-123", is_staff=True))
+        self.a = self.mgeni("Asha Said", "0711000001", ahadi=100_000)
+        Mchango.objects.create(mgeni=self.a, kiasi=40_000)
+        self.b = self.mgeni("Baraka Mwita", "")
+        self.c = self.mgeni("Chausiku Juma", "")
+
+    def test_pdf_za_vichujio(self):
+        for k in ("wamechangia", "hawajachangia", "wana_salio", "bila_simu", "wote", "hakuna-kama-hiki"):
+            r = self.client.get(reverse("wageni_pdf"), {"hali": k})
+            self.assertEqual(r.status_code, 200, k)
+            self.assertEqual(r["Content-Type"], "application/pdf")
+            self.assertTrue(r.content.startswith(b"%PDF"), k)
+            self.assertIn("attachment", r["Content-Disposition"])
+
+    def test_pdf_ndefu_kurasa_nyingi(self):
+        for i in range(60):
+            m = self.mgeni(f"Mgeni Namba {i}", f"07120{i:05d}")
+            Mchango.objects.create(mgeni=m, kiasi=10_000 + i)
+        r = self.client.get(reverse("wageni_pdf"), {"hali": "wamechangia"})
+        self.assertEqual(r.status_code, 200)
+        self.assertGreater(r.content.count(b"/Type /Page\n") + r.content.count(b"/Type /Page "), 1)
+
+    def test_maandishi_ya_kunakili(self):
+        t = huduma.maandishi_ya_orodha(self.h, "bila_simu", list(self.h.wageni.na_jumla().filter(simu="").order_by("jina")))
+        self.assertTrue(t.startswith("*WAGENI AMBAO HATUNA NAMBA ZAO*"))
+        self.assertIn("1. Baraka Mwita\n2. Chausiku Juma", t)
+        t = huduma.maandishi_ya_orodha(self.h, "wamechangia", list(self.h.wageni.na_jumla().filter(jumla_iliyotolewa__gt=0)))
+        self.assertIn("1. Asha Said – TSh 40,000", t)
+        self.assertIn("*Jumla: TSh 40,000*", t)
+        self.assertNotIn("0711", t)  # namba za watu hazibandikwi kwenye group
+
+    def test_ukurasa_wa_bila_namba_na_kuweka_namba(self):
+        r = self.client.get(reverse("bila_namba"))
+        self.assertContains(r, "Wageni 2 hawana namba")
+        self.assertContains(r, 'data-nakili="#orodha-ya-kunakili"')
+        r = self.client.post(reverse("bila_namba"), {"mgeni": self.b.pk, "simu": "0754 123 456"}, follow=True)
+        self.assertContains(r, "imehifadhiwa")
+        self.b.refresh_from_db()
+        self.assertEqual(self.b.simu, "255754123456")
+        r = self.client.post(reverse("bila_namba"), {"mgeni": self.c.pk, "simu": "0711000001"}, follow=True)
+        self.assertContains(r, "tayari ni ya Asha Said")
+        self.c.refresh_from_db()
+        self.assertEqual(self.c.simu, "")
+
+    def test_kurasa_zina_vitufe(self):
+        r = self.client.get(reverse("wageni"), {"hali": "wamechangia"})
+        self.assertContains(r, "Nakili orodha kwa WhatsApp")
+        self.assertContains(r, "Pakua PDF")
+        self.assertContains(r, "hawana namba ya simu")
+        self.assertContains(self.client.get(reverse("dashibodi")), "Waliochangia (PDF)")

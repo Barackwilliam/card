@@ -1,0 +1,40 @@
+{% extends "michango/base.html" %}
+{% load michango_extras %}
+{% block title %}Wasio na namba{% endblock %}
+{% block back %}<a class="back" href="{% url 'wageni' %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
+{% block brand %}Wasio na namba{% endblock %}
+{% block content %}
+<section class="card">
+  <h1 style="font-size:22px">Wageni {{ wageni|length }} hawana namba</h1>
+  <p class="muted small" style="margin-top:4px">Nakili orodha hii, ibandike kwenye group la familia la WhatsApp kuomba namba zao. Mtu akikutumia namba, iandike kando ya jina hapo chini.</p>
+  {% if wageni %}
+  <div class="btn-row" style="margin-top:14px">
+    <button type="button" class="btn pri" data-nakili="#orodha-ya-kunakili"><svg class="ico"><use href="#i-chat"/></svg>Nakili orodha kwa WhatsApp</button>
+    <a class="btn" href="{% url 'wageni_pdf' %}?hali=bila_simu"><svg class="ico"><use href="#i-download"/></svg>Pakua PDF</a>
+  </div>
+  <div class="wa-chat" style="margin-top:14px"><div class="wa-bubble" style="max-height:260px;overflow:auto">{{ maandishi }}</div></div>
+  <textarea id="orodha-ya-kunakili" hidden readonly rows="10" style="margin-top:10px">{{ maandishi }}</textarea>
+  {% endif %}
+</section>
+
+{% if wageni %}
+<section class="card" style="padding-top:4px;padding-bottom:4px">
+  <ul class="list">
+  {% for m in wageni %}
+    <li class="item" style="flex-wrap:wrap">
+      <span class="avatar">{{ m.jina|herufi }}</span>
+      <a class="item-main" href="{% url 'mgeni' m.pk %}" style="color:inherit"><span class="item-title">{{ forloop.counter }}. {{ m.jina }}</span>
+        <span class="item-sub">{% if m.jumla_iliyotolewa %}Ametoa {{ m.jumla_iliyotolewa|tsh }}{% elif m.ahadi %}Ahadi {{ m.ahadi|tsh }}{% else %}Hana namba bado{% endif %}</span></a>
+      <form method="post" class="namba-haraka">{% csrf_token %}
+        <input type="hidden" name="mgeni" value="{{ m.pk }}">
+        <input type="tel" name="simu" inputmode="tel" placeholder="07xx xxx xxx" aria-label="Namba ya {{ m.jina }}" autocomplete="off">
+        <button class="btn sm pri">Hifadhi</button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% else %}
+<section class="card empty"><svg class="ico"><use href="#i-check"/></svg>Wageni wote wana namba. Safi sana!</section>
+{% endif %}
+{% endblock %}

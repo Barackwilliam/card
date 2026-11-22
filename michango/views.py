@@ -127,8 +127,52 @@ def wageni(request, harusi):
         request,
         "michango/wageni.html",
         {"harusi": harusi, "page": page, "kichujio": kichujio, "q": q, "vichujio": vichujio,
-         "chagua": request.GET.get("chagua") == "1", "jumla": page.paginator.count},
+         "chagua": request.GET.get("chagua") == "1", "jumla": page.paginator.count,
+         "orodha_ya_kunakili": huduma.maandishi_ya_orodha(harusi, kichujio, list(_panga(qs, kichujio)[:500])),
+         "bila_namba": msingi.filter(simu="").count()},
     )
+
+
+def _panga(qs, kichujio):
+    return qs.order_by("-jumla_iliyotolewa", "jina") if kichujio in ("wamechangia", "wana_salio") else qs.order_by("jina")
+
+
+@harusi_au_setup
+def wageni_pdf(request, harusi):
+    """Pakua orodha ya kichujio kama PDF iliyopambwa."""
+    from .pdf import VICHWA, tengeneza_pdf
+
+    kichujio = request.GET.get("hali", "wote")
+    if kichujio not in VICHUJIO:
+        kichujio = "wote"
+    qs = _panga(_wageni_wa_kichujio(harusi, kichujio, request.GET.get("q", "").strip()), kichujio)
+    data = tengeneza_pdf(harusi, kichujio, qs, huduma.takwimu(harusi))
+    jina = f"{VICHWA.get(kichujio, VICHWA['wote'])[0]} - {harusi.jina}.pdf"
+    resp = HttpResponse(data, content_type="application/pdf")
+    resp["Content-Disposition"] = f'attachment; filename="{jina}"'
+    return resp
+
+
+@harusi_au_setup
+def bila_namba(request, harusi):
+    """Wageni wasio na namba: nakili orodha kwa WhatsApp, na weka namba zao papo hapo."""
+    if request.method == "POST":
+        m = get_object_or_404(harusi.wageni, pk=request.POST.get("mgeni"), simu="")
+        form = MgeniForm({"jina": m.jina, "simu": request.POST.get("simu", ""), "ahadi": m.ahadi or "",
+                          "maelezo": m.maelezo}, instance=m, harusi=harusi)
+        if not request.POST.get("simu", "").strip():
+            messages.warning(request, "Andika namba kwanza.")
+        elif form.is_valid():
+            form.save()
+            messages.success(request, f"Namba ya {m.jina} imehifadhiwa.")
+        else:
+            messages.error(request, f"{m.jina}: {' '.join(form.errors.get('simu', ['Namba si sahihi.']))}")
+        return redirect("bila_namba")
+    wageni = list(harusi.wageni.na_jumla().filter(simu="").order_by("jina"))
+    return render(request, "michango/bila_namba.html", {
+        "harusi": harusi, "wageni": wageni,
+        "maandishi": huduma.maandishi_ya_orodha(harusi, "bila_simu", wageni),
+    })
 
 
 @require_POST
