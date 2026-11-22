@@ -8,6 +8,7 @@
 <div class="notice"><svg class="ico"><use href="#i-alert"/></svg><span>WhatsApp bado haijawekwa kwenye mfumo huu. Mwambie aliyekuwekea mfumo aiwashe.</span></div>
 {% else %}
 
+<div class="wa-layout"><div>
 <section class="card" id="hali-panel">
   {% if not hali.worker_yuko_hewani %}
     <div class="notice err"><svg class="ico"><use href="#i-alert"/></svg>
@@ -44,6 +45,7 @@
   {% endif %}
 </section>
 
+</div><div>
 <section class="grid grid-2">
   <div class="card stat"><div class="lbl">Zinasubiri kutumwa</div><div class="val">{{ foleni }}</div></div>
   <div class="card stat"><div class="lbl">Zimetumwa leo</div><div class="val">{{ zilizotumwa_leo }}</div></div>
@@ -80,6 +82,8 @@
   </ul>
   {% if hali.kikomo_cha_whatsapp %}<p class="muted small" style="margin-top:8px">Taarifa ya WhatsApp: {{ hali.kikomo_cha_whatsapp }}</p>{% endif %}
 </details>
+
+</div></div>
 
 {% if za_karibuni %}
 <section class="card">

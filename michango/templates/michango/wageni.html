@@ -14,11 +14,17 @@
   </div>
 </div>
 
+<div class="toolbar">
 <form method="get" class="search" role="search">
   <input type="hidden" name="hali" value="{{ kichujio }}">{% if chagua %}<input type="hidden" name="chagua" value="1">{% endif %}
   <svg class="ico"><use href="#i-search"/></svg>
   <input type="search" name="q" value="{{ q }}" placeholder="Tafuta jina au namba ya simu" aria-label="Tafuta mgeni" enterkeyhint="search">
 </form>
+{% if not chagua %}
+  <button type="button" class="btn sm d-only" data-nakili="#orodha-ya-kunakili"><svg class="ico"><use href="#i-chat"/></svg>Nakili kwa WhatsApp</button>
+  <a class="btn sm d-only" href="{% url 'wageni_pdf' %}?hali={{ kichujio }}{% if q %}&q={{ q|urlencode }}{% endif %}"><svg class="ico"><use href="#i-download"/></svg>Pakua PDF</a>
+{% endif %}
+</div>
 
 <nav class="filters" aria-label="Vichujio">
   {% for k, jina, n in vichujio %}
@@ -31,7 +37,7 @@
 {% endif %}
 
 {% if not chagua %}
-<div class="btn-row">
+<div class="btn-row m-only">
   <button type="button" class="btn sm" data-nakili="#orodha-ya-kunakili"><svg class="ico"><use href="#i-chat"/></svg>Nakili orodha kwa WhatsApp</button>
   <a class="btn sm" href="{% url 'wageni_pdf' %}?hali={{ kichujio }}{% if q %}&q={{ q|urlencode }}{% endif %}"><svg class="ico"><use href="#i-download"/></svg>Pakua PDF</a>
 </div>
@@ -49,7 +55,8 @@
   </div>
   {% endif %}
 
-  <div class="card" style="padding-top:4px;padding-bottom:4px">
+  <div class="card tbl tbl-wageni{% if chagua %} chagua{% endif %}" style="padding-top:4px;padding-bottom:4px">
+    {% if page.object_list %}<div class="tbl-head d-only">{% if chagua %}<span></span>{% endif %}<span></span><span>Mgeni</span><span>Simu</span><span class="num-cell">Ahadi</span><span class="num-cell">Ametoa</span><span>Hali</span></div>{% endif %}
     <ul class="list">
     {% for m in page %}
       <li>
@@ -61,6 +68,9 @@
             <span class="item-title">{{ m.jina }}</span>
             <span class="item-sub">{% if m.simu %}+{{ m.simu }}{% else %}Hana namba{% endif %}{% if m.ahadi %} · ahadi {{ m.ahadi|tsh }}{% endif %}</span>
           </span>
+          <span class="cell d-only{% if not m.simu %} muted{% endif %}">{% if m.simu %}+{{ m.simu }}{% else %}Hana namba{% endif %}</span>
+          <span class="cell num-cell d-only{% if not m.ahadi %} muted{% endif %}">{% if m.ahadi %}{{ m.ahadi|tsh }}{% else %}–{% endif %}</span>
+          <span class="cell num-cell d-only" style="font-weight:{% if m.jumla_iliyotolewa %}800{% else %}500{% endif %};color:{% if m.jumla_iliyotolewa %}var(--ok){% else %}var(--muted){% endif %}">{% if m.jumla_iliyotolewa %}{{ m.jumla_iliyotolewa|tsh }}{% else %}–{% endif %}</span>
           <span class="item-end">
             {% if m.jumla_iliyotolewa %}<span class="amount">{{ m.jumla_iliyotolewa|tsh }}</span>{% endif %}
             {% with h=m.hali %}
@@ -90,7 +100,7 @@
   {% endif %}
 
   {% if not chagua %}
-  <a class="btn block" href="{% url 'ingiza' %}" style="margin-top:12px"><svg class="ico"><use href="#i-file"/></svg>Ingiza orodha kutoka Excel</a>
+  <a class="btn block m-only" href="{% url 'ingiza' %}" style="margin-top:12px"><svg class="ico"><use href="#i-file"/></svg>Ingiza orodha kutoka Excel</a>
   {% endif %}
 
   {% if chagua %}

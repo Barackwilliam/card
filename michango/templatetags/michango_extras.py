@@ -34,3 +34,14 @@ def pata(d, k):
         return d.get(k, "")
     except AttributeError:
         return ""
+
+
+@register.filter
+def siku_zilizobaki(tarehe):
+    """Siku zilizobaki hadi tarehe (0 = leo, hasi = imepita)."""
+    from django.utils import timezone
+
+    try:
+        return (tarehe - timezone.localdate()).days
+    except TypeError:
+        return None

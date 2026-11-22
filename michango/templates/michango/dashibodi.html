@@ -2,92 +2,93 @@
 {% load michango_extras %}
 {% block title %}Nyumbani{% endblock %}
 {% block content %}
-
-<section class="hero" aria-label="Jumla ya michango">
-  <div class="lbl">Michango iliyopokelewa</div>
-  <div class="big"><small>TSh</small>{{ t.jumla_michango|tsh }}</div>
-  <div class="sub">Kutoka kwa wageni {{ t.wamechangia }} kati ya {{ t.wageni }}{% if t.salio_ahadi %} · ahadi zinazosubiriwa TSh {{ t.salio_ahadi|tsh }}{% endif %}</div>
-  <div class="meter" aria-hidden="true"><i style="width: {{ t.asilimia_wamechangia }}%"></i></div>
-  <div class="meter-lbl"><span>{{ t.asilimia_wamechangia }}% wamechangia</span>
-    <span>{% if siku_zilizobaki > 0 %}Zimebaki siku {{ siku_zilizobaki }}{% elif siku_zilizobaki == 0 %}Mwisho ni leo{% else %}Muda umeisha{% endif %}</span></div>
+<div class="dash">
+<section class="hero d-hero" aria-label="Jumla ya michango">
+  <div style="min-width:0;position:relative;z-index:1">
+    <div class="lbl">Michango iliyopokelewa</div>
+    <div class="big"><small>TSh</small>{{ t.jumla_michango|tsh }}</div>
+    <div class="sub">Kutoka kwa wageni {{ t.wamechangia }} kati ya {{ t.wageni }}{% if t.salio_ahadi %} · ahadi zinazosubiriwa TSh {{ t.salio_ahadi|tsh }}{% endif %}</div>
+    <div class="meter" aria-hidden="true"><i style="width: {{ t.asilimia_wamechangia }}%"></i></div>
+    <div class="meter-lbl"><span>{{ t.asilimia_wamechangia }}% wamechangia</span>
+      <span>{% if siku_zilizobaki > 0 %}Zimebaki siku {{ siku_zilizobaki }}{% elif siku_zilizobaki == 0 %}Mwisho ni leo{% else %}Muda umeisha{% endif %}</span></div>
+  </div>
+  {% if harusi.kadi_template %}<img class="hero-kadi d-only" src="{{ harusi.kadi_template.url }}" alt="" loading="lazy">{% endif %}
 </section>
 
-<section class="actions" aria-label="Vitendo vya haraka">
-  <a class="action gold" href="{% url 'mchango_mpya' %}"><span class="circle"><svg class="ico"><use href="#i-plus"/></svg></span>Ingiza mchango</a>
-  <a class="action" href="{% url 'wageni' %}?hali=hawajatumiwa&chagua=1"><span class="circle"><svg class="ico"><use href="#i-send"/></svg></span>Tuma kadi</a>
-  <a class="action" href="{% url 'kumbusha' %}"><span class="circle"><svg class="ico"><use href="#i-bell"/></svg></span>Kumbusha</a>
-  <a class="action" href="{% url 'mgeni_mpya' %}"><span class="circle"><svg class="ico"><use href="#i-users"/></svg></span>Ongeza mgeni</a>
+<section class="card d-act" aria-label="Vitendo vya haraka">
+  <h2>Vitendo vya haraka</h2>
+  <div class="actions">
+    <a class="action gold" href="{% url 'mchango_mpya' %}"><span class="circle"><svg class="ico"><use href="#i-plus"/></svg></span><span class="act-txt">Ingiza mchango<small>Mtu akilipa, rekodi hapa</small></span></a>
+    <a class="action" href="{% url 'wageni' %}?hali=hawajatumiwa&chagua=1"><span class="circle"><svg class="ico"><use href="#i-send"/></svg></span><span class="act-txt">Tuma kadi<small>{{ t.hawajatumiwa }} bado hawajapata kadi</small></span></a>
+    <a class="action" href="{% url 'kumbusha' %}"><span class="circle"><svg class="ico"><use href="#i-bell"/></svg></span><span class="act-txt">Kumbusha<small>Andika na utume vikumbusho</small></span></a>
+    <a class="action" href="{% url 'mgeni_mpya' %}"><span class="circle"><svg class="ico"><use href="#i-users"/></svg></span><span class="act-txt">Ongeza mgeni<small>Au ingiza orodha kutoka Excel</small></span></a>
+  </div>
 </section>
 
-{% if t.whatsapp_backend == "baileys" and not wa_tayari %}
-<a class="notice" href="{% url 'whatsapp' %}"><svg class="ico"><use href="#i-chat"/></svg><span>WhatsApp haijaunganishwa bado. Gusa hapa kuiunganisha ili kadi na vikumbusho viende.</span></a>
-{% elif t.whatsapp_backend == "jaribio" %}
-<div class="notice"><svg class="ico"><use href="#i-alert"/></svg><span>WhatsApp bado haijawekwa kwenye mfumo. Kadi zinatengenezwa lakini hazitumwi.</span></div>
-{% elif t.jumbe_foleni %}
-<a class="notice info" href="{% url 'whatsapp' %}"><svg class="ico"><use href="#i-send"/></svg><span>Jumbe {{ t.jumbe_foleni }} zinatumwa polepole sasa hivi. Gusa kuona.</span></a>
-{% endif %}
+<div class="d-note">{% if t.whatsapp_backend == "baileys" and not wa_tayari %}<a class="notice" href="{% url 'whatsapp' %}"><svg class="ico"><use href="#i-chat"/></svg><span>WhatsApp haijaunganishwa bado. Gusa hapa kuiunganisha ili kadi na vikumbusho viende.</span></a>{% elif t.whatsapp_backend == "jaribio" %}<div class="notice"><svg class="ico"><use href="#i-alert"/></svg><span>WhatsApp bado haijawekwa kwenye mfumo. Kadi zinatengenezwa lakini hazitumwi.</span></div>{% elif t.jumbe_foleni %}<a class="notice info" href="{% url 'whatsapp' %}"><svg class="ico"><use href="#i-send"/></svg><span>Jumbe {{ t.jumbe_foleni }} zinatumwa polepole sasa hivi. Gusa kuona.</span></a>{% endif %}</div>
 
-{% if hatua_zimebaki %}
-<section class="card">
-  <div class="card-head"><h2>Hatua za kuanza</h2><span class="chip c-info">{{ hatua_zimebaki }} zimebaki</span></div>
-  <ol class="steps">
-    {% for h in hatua %}
-    <li class="{% if h.imekamilika %}done{% endif %}"><a href="{{ h.url }}">
-      <span class="dot">{% if h.imekamilika %}<svg class="ico" style="width:16px;height:16px"><use href="#i-check"/></svg>{% else %}{{ forloop.counter }}{% endif %}</span>
-      <span class="t">{{ h.jina }}</span>
-      {% if not h.imekamilika %}<svg class="ico go"><use href="#i-next"/></svg>{% endif %}
-    </a></li>
-    {% endfor %}
-  </ol>
-</section>
-{% endif %}
-
-<section class="grid grid-2 grid-4">
+<section class="grid grid-2 grid-4 d-stat">
   <a class="card stat" href="{% url 'wageni' %}?hali=wametumiwa"><div class="lbl">Wametumiwa kadi</div><div class="val">{{ t.wametumiwa }} <small>/ {{ t.wageni }}</small></div></a>
   <a class="card stat" href="{% url 'wageni' %}?hali=hawajachangia"><div class="lbl">Hawajachangia</div><div class="val">{{ t.hawajachangia }}</div></a>
   <a class="card stat" href="{% url 'wageni' %}?hali=wana_salio"><div class="lbl">Ahadi zilizobaki</div><div class="val"><small>TSh</small> {{ t.salio_ahadi|tsh }}</div></a>
   <a class="card stat" href="{% url 'michango' %}"><div class="lbl">Malipo yaliyoingizwa</div><div class="val">{{ t.idadi_michango }}</div></a>
 </section>
 
-<section class="card">
-  <h2 style="margin-bottom:4px">Ripoti</h2>
+<div class="card d-main">
+  <div class="card-head"><h2>Michango ya karibuni</h2><a href="{% url 'michango' %}">Ona yote</a></div>
+  {% if michango %}
   <ul class="list">
-    <li><a class="item" href="{% url 'wageni_pdf' %}?hali=wamechangia"><span class="avatar" style="background:var(--ok-bg);color:var(--ok)"><svg class="ico"><use href="#i-download"/></svg></span>
-      <span class="item-main"><span class="item-title">Waliochangia (PDF)</span><span class="item-sub">{{ t.wamechangia }} · TSh {{ t.jumla_michango|tsh }}</span></span></a></li>
-    <li><a class="item" href="{% url 'wageni_pdf' %}?hali=hawajachangia"><span class="avatar" style="background:var(--warn-bg);color:var(--warn)"><svg class="ico"><use href="#i-download"/></svg></span>
-      <span class="item-main"><span class="item-title">Wasiochangia (PDF)</span><span class="item-sub">{{ t.hawajachangia }} wanasubiriwa</span></span></a></li>
-    {% if t.bila_namba %}<li><a class="item" href="{% url 'bila_namba' %}"><span class="avatar"><svg class="ico"><use href="#i-phone"/></svg></span>
-      <span class="item-main"><span class="item-title">Wasio na namba</span><span class="item-sub">{{ t.bila_namba }} · nakili orodha kwa WhatsApp</span></span><svg class="ico muted"><use href="#i-next"/></svg></a></li>{% endif %}
+    {% for c in michango %}
+    <li><a class="item" href="{% url 'mgeni' c.mgeni_id %}">
+      <span class="avatar">{{ c.mgeni.jina|herufi }}</span>
+      <span class="item-main"><span class="item-title">{{ c.mgeni.jina }}</span><span class="item-sub">{{ c.get_njia_display }} · {{ c.tarehe|date:"d M" }}</span></span>
+      <span class="amount">{{ c.kiasi|tsh }}</span>
+    </a></li>
+    {% endfor %}
   </ul>
-</section>
+  {% else %}
+  <div class="empty"><svg class="ico"><use href="#i-wallet"/></svg>Bado hakuna mchango. Mtu akilipa, gusa <b>Ingiza mchango</b>.</div>
+  {% endif %}
+</div>
 
-<section class="grid grid-cols">
-  <div class="card">
-    <div class="card-head"><h2>Michango ya karibuni</h2><a href="{% url 'michango' %}">Yote</a></div>
-    {% if michango %}
-    <ul class="list">
-      {% for c in michango %}
-      <li><a class="item" href="{% url 'mgeni' c.mgeni_id %}">
-        <span class="avatar">{{ c.mgeni.jina|herufi }}</span>
-        <span class="item-main"><span class="item-title">{{ c.mgeni.jina }}</span><span class="item-sub">{{ c.get_njia_display }} · {{ c.tarehe|date:"d M" }}</span></span>
-        <span class="amount">{{ c.kiasi|tsh }}</span>
+<div class="d-side">
+  {% if hatua_zimebaki %}
+  <section class="card d-steps">
+    <div class="card-head"><h2>Hatua za kuanza</h2><span class="chip c-info">{{ hatua_zimebaki }} zimebaki</span></div>
+    <ol class="steps">
+      {% for h in hatua %}
+      <li class="{% if h.imekamilika %}done{% endif %}"><a href="{{ h.url }}">
+        <span class="dot">{% if h.imekamilika %}<svg class="ico" style="width:16px;height:16px"><use href="#i-check"/></svg>{% else %}{{ forloop.counter }}{% endif %}</span>
+        <span class="t">{{ h.jina }}</span>
+        {% if not h.imekamilika %}<svg class="ico go"><use href="#i-next"/></svg>{% endif %}
       </a></li>
       {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  <section class="card d-reports">
+    <h2 style="margin-bottom:4px">Ripoti</h2>
+    <ul class="list">
+      <li><a class="item" href="{% url 'wageni_pdf' %}?hali=wamechangia"><span class="avatar" style="background:var(--ok-bg);color:var(--ok)"><svg class="ico"><use href="#i-download"/></svg></span>
+        <span class="item-main"><span class="item-title">Waliochangia (PDF)</span><span class="item-sub">{{ t.wamechangia }} · TSh {{ t.jumla_michango|tsh }}</span></span></a></li>
+      <li><a class="item" href="{% url 'wageni_pdf' %}?hali=hawajachangia"><span class="avatar" style="background:var(--warn-bg);color:var(--warn)"><svg class="ico"><use href="#i-download"/></svg></span>
+        <span class="item-main"><span class="item-title">Wasiochangia (PDF)</span><span class="item-sub">{{ t.hawajachangia }} wanasubiriwa</span></span></a></li>
+      {% if t.bila_namba %}<li><a class="item" href="{% url 'bila_namba' %}"><span class="avatar"><svg class="ico"><use href="#i-phone"/></svg></span>
+        <span class="item-main"><span class="item-title">Wasio na namba</span><span class="item-sub">{{ t.bila_namba }} · nakili orodha kwa WhatsApp</span></span><svg class="ico muted"><use href="#i-next"/></svg></a></li>{% endif %}
     </ul>
-    {% else %}
-    <div class="empty"><svg class="ico"><use href="#i-wallet"/></svg>Bado hakuna mchango. Mtu akilipa, gusa <b>Ingiza mchango</b>.</div>
-    {% endif %}
-  </div>
+  </section>
 
   {% if t.kwa_njia %}
-  <div class="card">
+  <section class="card d-methods">
     <h2 style="margin-bottom:6px">Njia za malipo</h2>
     <ul class="list">
       {% for r in t.kwa_njia %}
       <li class="item"><span class="item-main"><span class="item-title">{{ r.jina }}</span><span class="item-sub">Malipo {{ r.n }}</span></span><span class="amount">{{ r.s|tsh }}</span></li>
       {% endfor %}
     </ul>
-  </div>
+  </section>
   {% endif %}
-</section>
+</div>
+</div>
 {% endblock %}

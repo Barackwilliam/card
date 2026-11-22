@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static michango_extras %}<!doctype html>
 <html lang="sw">
 <head>
 <meta charset="utf-8">
@@ -14,6 +14,43 @@
 <body>
 {% include "michango/_icons.html" %}
 {% with u=request.resolver_match.url_name %}
+<div class="shell{% if user.is_authenticated %} has-sidebar{% endif %}">
+{% if user.is_authenticated %}
+<aside class="sidebar" aria-label="Menyu kuu">
+  <a class="sb-brand" href="{% url 'dashibodi' %}">
+    <span class="sb-mark"><svg class="ico"><use href="#i-heart"/></svg></span>
+    <span class="sb-brand-txt"><b>{{ harusi.mwenye_harusi|default:"Michango" }}</b><small>Michango ya harusi</small></span>
+  </a>
+  <nav class="sb-nav">
+    <span class="sb-lbl">Kuu</span>
+    <a href="{% url 'dashibodi' %}" class="{% if u == 'dashibodi' %}on{% endif %}"><svg class="ico"><use href="#i-home"/></svg>Nyumbani</a>
+    <a href="{% url 'wageni' %}" class="{% if u in 'wageni mgeni mgeni_hariri mgeni_mpya ingiza bila_namba' %}on{% endif %}"><svg class="ico"><use href="#i-users"/></svg>Wageni</a>
+    <a href="{% url 'michango' %}" class="{% if u in 'michango mchango_mpya' %}on{% endif %}"><svg class="ico"><use href="#i-wallet"/></svg>Michango</a>
+    <span class="sb-lbl">Mawasiliano</span>
+    <a href="{% url 'kumbusha' %}" class="{% if u == 'kumbusha' %}on{% endif %}"><svg class="ico"><use href="#i-bell"/></svg>Kumbusha</a>
+    <a href="{% url 'whatsapp' %}" class="{% if u == 'whatsapp' %}on{% endif %}"><svg class="ico"><use href="#i-chat"/></svg>WhatsApp</a>
+    <span class="sb-lbl">Mfumo</span>
+    <a href="{% url 'mipangilio' %}" class="{% if u in 'mipangilio password_change' %}on{% endif %}"><svg class="ico"><use href="#i-settings"/></svg>Mipangilio</a>
+  </nav>
+  {% if harusi %}
+  <div class="sb-card">
+    {% with s=harusi.tarehe_mwisho|siku_zilizobaki %}
+    <span class="sb-card-lbl">Mwisho wa michango</span>
+    <b class="sb-card-big">{% if s > 0 %}Siku {{ s }}{% elif s == 0 %}Leo{% else %}Imepita{% endif %}</b>
+    <span class="sb-card-sub">{{ harusi.tarehe_mwisho|date:"d.m.Y" }}</span>
+    {% endwith %}
+    <a class="btn gold block" href="{% url 'mchango_mpya' %}"><svg class="ico"><use href="#i-plus"/></svg>Ingiza mchango</a>
+  </div>
+  {% endif %}
+  <div class="sb-user">
+    <span class="sb-avatar">{{ user.get_username|slice:":1"|upper }}</span>
+    <span class="sb-user-txt"><b>{{ user.get_username }}</b><small>Msimamizi</small></span>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="sb-out" aria-label="Toka" title="Toka"><svg class="ico"><use href="#i-logout"/></svg></button></form>
+  </div>
+</aside>
+{% endif %}
+
+<div class="content">
 <header class="topbar" id="topbar"><div class="topbar-in">
   {% block back %}{% endblock %}
   <a class="brand" href="{% url 'dashibodi' %}">
@@ -21,21 +58,17 @@
     <span>{% block brand %}{{ harusi.jina|default:"Michango ya Harusi" }}{% endblock %}</span>
   </a>
   {% if user.is_authenticated %}
-  <nav class="topnav" aria-label="Menyu">
-    <a href="{% url 'dashibodi' %}" class="{% if u == 'dashibodi' %}on{% endif %}">Nyumbani</a>
-    <a href="{% url 'wageni' %}" class="{% if u in 'wageni mgeni mgeni_hariri mgeni_mpya ingiza' %}on{% endif %}">Wageni</a>
-    <a href="{% url 'michango' %}" class="{% if u in 'michango mchango_mpya' %}on{% endif %}">Michango</a>
-    <a href="{% url 'whatsapp' %}" class="{% if u == 'whatsapp' %}on{% endif %}">WhatsApp</a>
-    <a href="{% url 'mipangilio' %}" class="{% if u in 'mipangilio password_change' %}on{% endif %}">Mipangilio</a>
-  </nav>
+  {% if u != 'mchango_mpya' %}<a class="btn sm gold d-only" href="{% url 'mchango_mpya' %}"><svg class="ico"><use href="#i-plus"/></svg>Ingiza mchango</a>{% endif %}
   <a class="back" href="{% url 'mipangilio' %}" aria-label="Mipangilio" style="{% if u == 'mipangilio' %}color:var(--primary){% endif %}" data-mobile-only><svg class="ico"><use href="#i-settings"/></svg></a>
   {% endif %}
 </div></header>
 
-<main class="main">
+<main class="main {% block main_class %}{% endblock %}">
   {% if messages %}<div class="toasts" role="status">{% for m in messages %}<div class="toast {{ m.tags }}"><svg class="ico"><use href="#{% if m.tags == 'success' %}i-check{% else %}i-alert{% endif %}"/></svg><span>{{ m }}</span></div>{% endfor %}</div>{% endif %}
   {% block content %}{% endblock %}
 </main>
+</div>
+</div>
 
 {% if user.is_authenticated %}
 <nav class="bottomnav" aria-label="Menyu ya chini">

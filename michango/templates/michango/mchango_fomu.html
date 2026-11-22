@@ -3,6 +3,7 @@
 {% block title %}Ingiza mchango{% endblock %}
 {% block back %}<a class="back" href="{% if mg %}{% url 'mgeni' mg.pk %}{% else %}{% url 'dashibodi' %}{% endif %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
 {% block brand %}Ingiza mchango{% endblock %}
+{% block main_class %}narrow{% endblock %}
 {% block content %}
 <form method="post" class="form" id="fomu">{% csrf_token %}
   {{ form.non_field_errors }}

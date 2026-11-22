@@ -2,6 +2,7 @@
 {% block title %}Badilisha nenosiri{% endblock %}
 {% block back %}<a class="back" href="{% url 'mipangilio' %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
 {% block brand %}Badilisha nenosiri{% endblock %}
+{% block main_class %}narrow{% endblock %}
 {% block content %}
 <section class="card"><form method="post" class="form">{% csrf_token %}
   {{ form.non_field_errors }}

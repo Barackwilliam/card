@@ -10,12 +10,16 @@
   <a href="?" class="{% if not njia %}on{% endif %}">Zote</a>
   {% for k, jina in njia_zote %}<a href="?njia={{ k }}" class="{% if njia == k %}on{% endif %}">{{ jina }}</a>{% endfor %}
 </nav>
-<div class="card" style="padding-top:4px;padding-bottom:4px">
+<div class="card tbl tbl-michango" style="padding-top:4px;padding-bottom:4px">
+  {% if page.object_list %}<div class="tbl-head d-only"><span></span><span>Mgeni</span><span>Njia</span><span>Tarehe</span><span>Muamala</span><span class="num-cell">Kiasi (TSh)</span></div>{% endif %}
   <ul class="list">
   {% for c in page %}
     <li><a class="item" href="{% url 'mgeni' c.mgeni_id %}">
       <span class="avatar">{{ c.mgeni.jina|herufi }}</span>
       <span class="item-main"><span class="item-title">{{ c.mgeni.jina }}</span><span class="item-sub">{{ c.get_njia_display }} · {{ c.tarehe|date:"d M Y" }}{% if c.kumbukumbu %} · {{ c.kumbukumbu }}{% endif %}</span></span>
+      <span class="cell d-only">{{ c.get_njia_display }}</span>
+      <span class="cell d-only muted">{{ c.tarehe|date:"d M Y" }}</span>
+      <span class="cell d-only muted">{{ c.kumbukumbu|default:"–" }}</span>
       <span class="amount">{{ c.kiasi|tsh }}</span>
     </a></li>
   {% empty %}
@@ -30,5 +34,5 @@
   {% if page.has_next %}<a class="btn sm" href="?njia={{ njia }}&ukurasa={{ page.next_page_number }}"><svg class="ico"><use href="#i-next"/></svg></a>{% endif %}
 </div>
 {% endif %}
-<a class="btn gold block" href="{% url 'mchango_mpya' %}"><svg class="ico"><use href="#i-plus"/></svg>Ingiza mchango</a>
+<a class="btn gold block m-only" href="{% url 'mchango_mpya' %}"><svg class="ico"><use href="#i-plus"/></svg>Ingiza mchango</a>
 {% endblock %}

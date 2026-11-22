@@ -2,6 +2,7 @@
 {% block title %}{% if m %}Hariri {{ m.jina }}{% else %}Mgeni mpya{% endif %}{% endblock %}
 {% block back %}<a class="back" href="{% if m %}{% url 'mgeni' m.pk %}{% else %}{% url 'wageni' %}{% endif %}" aria-label="Rudi"><svg class="ico"><use href="#i-back"/></svg></a>{% endblock %}
 {% block brand %}{% if m %}Hariri mgeni{% else %}Mgeni mpya{% endif %}{% endblock %}
+{% block main_class %}narrow{% endblock %}
 {% block content %}
 <section class="card">
   <form method="post" class="form">{% csrf_token %}
