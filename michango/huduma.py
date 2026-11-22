@@ -94,6 +94,30 @@ def tuma_kadi(mgeni: Mgeni) -> Ujumbe | None:
     return u
 
 
+JARIBIO_KWA_SIKU = 3
+
+
+def majaribio_yaliyobaki(harusi) -> int:
+    leo = Ujumbe.objects.filter(mgeni__harusi=harusi, haraka=True, updated__date=timezone.localdate()).count()
+    return max(JARIBIO_KWA_SIKU - leo, 0)
+
+
+def tuma_jaribio_sasa(mgeni: Mgeni) -> tuple[Ujumbe | None, str]:
+    """Tuma kadi ya jaribio mara moja (mbele ya foleni, hata usiku). Kwa Baileys tu, mara 3 kwa siku."""
+    if whatsapp.backend() != "baileys":
+        return None, "Jaribio la haraka linapatikana kwa WhatsApp ya namba ya kawaida tu."
+    sababu = kwa_nini_hawezi_kutumiwa(mgeni)
+    if sababu:
+        return None, sababu
+    if majaribio_yaliyobaki(mgeni.harusi) <= 0:
+        return None, f"Umefikia majaribio {JARIBIO_KWA_SIKU} ya leo. Jaribu kesho, au subiri saa 2 asubuhi foleni ianze."
+    u = tuma_kadi(mgeni)
+    if u and u.hali == "kwenye_foleni":
+        u.haraka = True
+        u.save(update_fields=["haraka", "updated"])
+    return u, ""
+
+
 def tuma_kikumbusho(mgeni: Mgeni, maandishi: str | None = None) -> Ujumbe | None:
     """maandishi: ujumbe ulioandikwa sasa hivi (ukurasa wa Kumbusha); usipotolewa, wa Mipangilio unatumika."""
     if kwa_nini_hawezi_kutumiwa(mgeni):

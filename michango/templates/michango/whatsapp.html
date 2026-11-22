@@ -49,6 +49,9 @@
   <div class="card stat"><div class="lbl">Zimetumwa leo</div><div class="val">{{ zilizotumwa_leo }}</div></div>
 </section>
 
+{% if foleni and not ndani_ya_saa and not hali.imesitishwa %}
+  <div class="notice info"><svg class="ico"><use href="#i-bell"/></svg><span>Saa hizi mfumo haututumi jumbe (unatuma saa 2 asubuhi mpaka saa 2 usiku). Jumbe {{ foleni }} zitaanza kutumwa saa 2 asubuhi. Kujaribu kwa namba yako sasa hivi, fungua mgeni na uguse <b>Tuma sasa hivi (jaribio)</b>.</span></div>
+{% endif %}
 {% if hali.imesitishwa %}
   <div class="notice"><svg class="ico"><use href="#i-pause"/></svg><span>Umesitisha utumaji. Hakuna ujumbe utakaotumwa mpaka uguse <b>Endelea kutuma</b>.</span></div>
 {% elif hali.imesimamishwa_mpaka and hali.imesimamishwa_mpaka > sasa %}

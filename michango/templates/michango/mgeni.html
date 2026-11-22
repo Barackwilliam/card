@@ -65,6 +65,10 @@
     <button class="btn block" name="kitendo" value="kikumbusho"><svg class="ico"><use href="#i-bell"/></svg>Mkumbushe sasa</button>
     {% endif %}
     {% endif %}
+    {% if m.simu and not m.amejitoa %}
+    <button class="btn sm ghost" name="kitendo" value="jaribio_sasa" title="Kwa kujaribu kwa namba yako: inatumwa mara moja hata usiku">
+      <svg class="ico"><use href="#i-play"/></svg>Tuma sasa hivi (jaribio)</button>
+    {% endif %}
     <div class="btn-row">
       <button class="btn sm" name="kitendo" value="tengeneza_kadi"><svg class="ico"><use href="#i-card"/></svg>{% if m.kadi %}Tengeneza upya{% else %}Tengeneza kadi{% endif %}</button>
       {% if m.kadi %}<a class="btn sm" href="{{ m.kadi.url }}" download target="_blank" rel="noopener"><svg class="ico"><use href="#i-download"/></svg>Pakua</a>{% endif %}

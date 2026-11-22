@@ -224,6 +224,8 @@ class Ujumbe(models.Model):
     picha_url = models.URLField(max_length=500, blank=True)
     majaribio = models.PositiveSmallIntegerField(default=0)
     umetumwa_at = models.DateTimeField(null=True, blank=True)
+    # Jaribio la haraka: linatumwa mbele ya foleni hata nje ya saa za kutuma
+    haraka = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 

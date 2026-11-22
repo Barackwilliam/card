@@ -54,14 +54,15 @@ export class Mtumaji {
     const hali = await db.soma();
     if (hali.imesitishwa) return { subiri: 30000, sababu: 'imesitishwa' };
     if (hali.imesimamishwa_mpaka && new Date(hali.imesimamishwa_mpaka) > sasa) return { subiri: DAKIKA, sababu: 'kinga' };
-    if (!ndaniYaSaaZaKutuma(sasa, cfg)) return { subiri: 5 * DAKIKA, sababu: 'nje_ya_saa' };
+    // Nje ya saa za kutuma, ni majaribio ya haraka tu (kitufe "Tuma sasa hivi") yanayotumwa.
+    const ndani = ndaniYaSaaZaKutuma(sasa, cfg);
 
     const idadi = await db.idadiZilizotumwa();
     if (idadi.saa >= cfg.kikomoKwaSaa) return { subiri: 5 * DAKIKA, sababu: 'kikomo_saa' };
     if (idadi.siku >= cfg.kikomoKwaSiku) return { subiri: 15 * DAKIKA, sababu: 'kikomo_siku' };
 
-    const u = await db.unaofuata();
-    if (!u) return { subiri: 15000, sababu: 'foleni_tupu' };
+    const u = await db.unaofuata({ harakaPekee: !ndani });
+    if (!u) return ndani ? { subiri: 15000, sababu: 'foleni_tupu' } : { subiri: 20000, sababu: 'nje_ya_saa' };
 
     if (u.amejitoa) {
       await db.ghairi(u.id, 'Ameomba asitumiwe ujumbe');

@@ -555,3 +555,32 @@ class UjumbeWaMtumiajiTests(Msingi):
             "sehemu": "ujumbe", "vikumbusho_kwa_siku": 1, "vikumbusho_jumla_max": 4, "ujumbe_kadi": "Karibu {salio}",
         })
         self.assertContains(r, "Hivi havijulikani")
+
+
+@override_settings(WHATSAPP={**settings.WHATSAPP, "BACKEND": "baileys"})
+class JaribioLaHarakaTests(Msingi):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user("j", password="nenosiri-zuri-123", is_staff=True))
+        self.m = self.mgeni("Mimi Mwenyewe", "0711000001", tumwa=False)
+
+    def test_kadi_iliyo_foleni_inapelekwa_mbele(self):
+        u = huduma.tuma_kadi(self.m)  # iko foleni, inasubiri asubuhi
+        r = self.client.post(reverse("mgeni_kitendo", args=[self.m.pk]), {"kitendo": "jaribio_sasa"}, follow=True)
+        self.assertContains(r, "mbele ya foleni")
+        u.refresh_from_db()
+        self.assertTrue(u.haraka)
+        self.assertEqual(Ujumbe.objects.filter(mgeni=self.m).count(), 1)
+
+    def test_majaribio_3_kwa_siku(self):
+        for _ in range(3):
+            u, sababu = huduma.tuma_jaribio_sasa(self.m)
+            self.assertEqual(sababu, "")
+            u.hali = "umetumwa"
+            u.save()
+        u, sababu = huduma.tuma_jaribio_sasa(self.m)
+        self.assertIsNone(u)
+        self.assertIn("majaribio 3", sababu)
+
+    def test_ukurasa_wa_mgeni_una_kitufe(self):
+        self.assertContains(self.client.get(reverse("mgeni", args=[self.m.pk])), "Tuma sasa hivi (jaribio)")

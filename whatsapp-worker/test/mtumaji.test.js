@@ -35,14 +35,14 @@ async function andaa(pool) {
   await pool.query('TRUNCATE michango_ujumbe, michango_mchango, michango_mgeni, michango_harusi, wa_hali, wa_auth RESTART IDENTITY CASCADE');
   await pool.query(`INSERT INTO michango_harusi (jina, mwenye_harusi, familia, tarehe_mwisho, maelekezo_malipo, kadi_template,
       jina_x, jina_y, jina_ukubwa, jina_upana_max, jina_rangi, jina_fonti, vikumbusho_vimewashwa, vikumbusho_kwa_siku,
-      vikumbusho_jumla_max, shukrani_zimewashwa, created)
-    VALUES ('H', 'R', '', '2026-11-30', 'M-Pesa', 't.jpg', .5, .45, 50, .7, '#000000', 'GreatVibes-Regular.ttf', true, 1, 4, true, now())`);
+      vikumbusho_jumla_max, shukrani_zimewashwa, ujumbe_kadi, ujumbe_kikumbusho, ujumbe_salio, ujumbe_shukrani, created)
+    VALUES ('H', 'R', '', '2026-11-30', 'M-Pesa', 't.jpg', .5, .45, 50, .7, '#000000', 'GreatVibes-Regular.ttf', true, 1, 4, true, '', '', '', '', now())`);
   const mgeni = async (jina, simu, amejitoa = false) =>
     (await pool.query(`INSERT INTO michango_mgeni (harusi_id, jina, simu, kadi, amejitoa, maelezo, created)
        VALUES (1, $1, $2, '', $3, '', now()) RETURNING id`, [jina, simu, amejitoa])).rows[0].id;
   const ujumbe = async (mgeniId, aina, { picha = '', created = new Date(SAA_TISA.getTime() - 60000) } = {}) =>
-    (await pool.query(`INSERT INTO michango_ujumbe (mgeni_id, aina, hali, wa_id, kosa, simu, maandishi, picha_url, majaribio, created, updated)
-       SELECT $1, $2, 'kwenye_foleni', '', '', simu, 'Habari ' || jina, $3, 0, $4, now() FROM michango_mgeni WHERE id = $1 RETURNING id`,
+    (await pool.query(`INSERT INTO michango_ujumbe (mgeni_id, aina, hali, wa_id, kosa, simu, maandishi, picha_url, majaribio, haraka, created, updated)
+       SELECT $1, $2, 'kwenye_foleni', '', '', simu, 'Habari ' || jina, $3, 0, false, $4, now() FROM michango_mgeni WHERE id = $1 RETURNING id`,
        [mgeniId, aina, picha, created])).rows[0].id;
   await hifadhi(pool).hakikishaHali();
   return { mgeni, ujumbe };
@@ -72,9 +72,19 @@ test('mzunguko wa kutuma na kinga', { skip }, async (t) => {
   assert.equal((await m.hatua()).sababu, 'haijaunganishwa');
   m.wekaSocket(sock, true);
 
-  // Usiku: hakuna kinachotumwa
+  // Usiku: hakuna kinachotumwa, isipokuwa jaribio la haraka
   sasa = new Date('2026-11-25T18:00:00Z');
   assert.equal((await m.hatua()).sababu, 'nje_ya_saa');
+  const harakaMgeni = await mgeni('Haraka', '255711000009');
+  const haraka = await ujumbe(harakaMgeni, 'kadi');
+  await pool.query('UPDATE michango_ujumbe SET haraka = true WHERE id = $1', [haraka]);
+  assert.equal((await m.hatua()).sababu, 'imetumwa'); // usiku, kwa sababu ni jaribio
+  assert.equal((await hali(pool, haraka)).hali, 'umetumwa');
+  assert.equal(sock.zilizotumwa[0].content.text, 'Habari Haraka');
+  assert.equal((await m.hatua()).sababu, 'nje_ya_saa'); // kadiA bado inasubiri asubuhi
+  assert.equal((await hali(pool, kadiA)).hali, 'kwenye_foleni');
+  sock.zilizotumwa.length = 0;
+  sock.presence.length = 0;
   sasa = SAA_TISA;
 
   // Kadi inatumwa kwanza, na picha + "anaandika"

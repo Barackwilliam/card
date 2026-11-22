@@ -54,12 +54,13 @@ export function hifadhi(pool) {
       return { saa: Number(r.rows[0].saa), siku: Number(r.rows[0].siku) };
     },
 
-    async unaofuata() {
+    /** Ujumbe unaofuata. harakaPekee: majaribio ya haraka tu (kwa nje ya saa za kutuma). */
+    async unaofuata({ harakaPekee = false } = {}) {
       const r = await pool.query(
-        `SELECT u.id, u.aina, u.simu, u.maandishi, u.picha_url, u.majaribio, u.created, u.mgeni_id, m.amejitoa
+        `SELECT u.id, u.aina, u.simu, u.maandishi, u.picha_url, u.majaribio, u.created, u.mgeni_id, u.haraka, m.amejitoa
          FROM michango_ujumbe u JOIN michango_mgeni m ON m.id = u.mgeni_id
-         WHERE u.hali = 'kwenye_foleni'
-         ORDER BY CASE u.aina WHEN 'shukrani' THEN 0 WHEN 'kadi' THEN 1 ELSE 2 END, u.created
+         WHERE u.hali = 'kwenye_foleni' ${harakaPekee ? 'AND u.haraka' : ''}
+         ORDER BY u.haraka DESC, CASE u.aina WHEN 'shukrani' THEN 0 WHEN 'kadi' THEN 1 ELSE 2 END, u.created
          LIMIT 1`,
       );
       return r.rows[0] || null;

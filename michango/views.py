@@ -235,6 +235,16 @@ def mgeni_kitendo(request, harusi, pk):
     elif kitendo == "kikumbusho":
         u = huduma.tuma_kikumbusho(m)
         _taarifa_ujumbe(request, u, m, "Kikumbusho")
+    elif kitendo == "jaribio_sasa":
+        u, sababu = huduma.tuma_jaribio_sasa(m)
+        if sababu:
+            messages.warning(request, sababu)
+        else:
+            messages.success(
+                request,
+                f"Jaribio limepelekwa mbele ya foleni. Kadi itafika kwa {m.jina} ndani ya dakika 1-2 "
+                f"(kama WhatsApp imeunganishwa). Majaribio yaliyobaki leo: {huduma.majaribio_yaliyobaki(harusi)}.",
+            )
     elif kitendo == "tengeneza_kadi":
         tengeneza_kadi(m)
         messages.success(request, "Kadi imetengenezwa upya.")
@@ -501,6 +511,7 @@ def whatsapp_hali(request, harusi):
         "zilizotumwa_leo": jumbe.filter(umetumwa_at__date=leo).count(),
         "zilizoshindwa_leo": jumbe.filter(hali="umeshindwa", updated__date=leo).count(),
         "za_karibuni": jumbe.exclude(hali="jaribio").select_related("mgeni")[:15],
+        "ndani_ya_saa": huduma.SAA_YA_KUANZA <= timezone.localtime().hour < huduma.SAA_YA_MWISHO,
         "sasa": timezone.now(),
     }
     if request.GET.get("json"):
