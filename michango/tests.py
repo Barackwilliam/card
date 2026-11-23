@@ -785,3 +785,13 @@ class NambaMpyaTests(Msingi):
         r = self.client.get(reverse("whatsapp"))
         self.assertContains(r, "Unganisha namba nyingine")
         self.assertContains(r, "Kasi ya kutuma")
+
+
+class IngizaNambaMpyaTests(Msingi):
+    def test_mgeni_bila_namba_anaongezewa_namba(self):
+        m = self.mgeni("Juma Mfano", "")
+        r = ingiza_csv(self.h, "jina,simu\nJuma Mfano,+1 555 000 0001\nAsha Mfano,0711000099\n".encode())
+        self.assertEqual((r.wapya, r.wamesasishwa), (1, 1))
+        m.refresh_from_db()
+        self.assertEqual(m.simu, "15550000001")
+        self.assertEqual(self.h.wageni.filter(jina="Juma Mfano").count(), 1)

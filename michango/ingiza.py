@@ -75,6 +75,11 @@ def ingiza_csv(harusi, faili_bytes: bytes, aliyeingiza=None) -> MatokeoUingizaji
             mgeni = harusi.wageni.filter(simu=simu).first()
         if not mgeni:
             mgeni = harusi.wageni.filter(jina__iexact=jina, simu=simu).first()
+        if not mgeni and simu:
+            # Mgeni aliyekuwepo bila namba: mwongezee namba badala ya kumwongeza mara ya pili
+            mgeni = harusi.wageni.filter(jina__iexact=jina, simu="").first()
+            if mgeni:
+                mgeni.simu = simu
         if mgeni:
             mgeni.jina = jina
             if ahadi:
